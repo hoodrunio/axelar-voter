@@ -50,12 +50,12 @@ export default function checkVotesJob(discord, prisma) {
                     const totalVote = totalVotes.find(m => m.height === vote.height);
                     const noPercent = (totalVote.no / totalVote.total) * 100;
 
-                    let waitingVote = false;
+                    let preferredVoteStatus = false;
                     if (noPercent > 60) {
-                        waitingVote = true;
+                        preferredVoteStatus = true;
                     }
 
-                    if (vote.vote !== waitingVote) {
+                    if (vote.vote !== preferredVoteStatus) {
                         continue;
                     }
 
