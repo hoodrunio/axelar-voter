@@ -1,5 +1,6 @@
 import {CronJob} from "cron";
 import _ from "lodash";
+import {EmbedBuilder} from "discord.js";
 
 import {getVotes} from "../lib/axelarscan.js";
 
@@ -23,17 +24,17 @@ export default function checkVotesJob(discord, prisma) {
             const users = await prisma.user.findMany();
 
             const totalVotes = votes.reduce((acc, vote) => {
-                const height = acc.find(m => m.height === vote.height);
-                if (height) {
-                    height.total += 1;
+                const curr = acc.find(m => m.pollId === vote.pollId);
+                if (curr) {
+                    curr.total += 1;
                     if (vote.vote) {
-                        height.yes += 1;
+                        curr.yes += 1;
                     } else {
-                        height.no += 1;
+                        curr.no += 1;
                     }
                 } else {
                     acc.push({
-                        height: vote.height,
+                        pollId: vote.height,
                         total: 1,
                         yes: vote.vote ? 1 : 0,
                         no: vote.vote ? 0 : 1,
@@ -47,7 +48,7 @@ export default function checkVotesJob(discord, prisma) {
             for (const user of users) {
                 const vote = votes.find(vote => vote.voter === user.address);
                 if (vote) {
-                    const totalVote = totalVotes.find(m => m.height === vote.height);
+                    const totalVote = totalVotes.find(m => m.pollId === vote.pollId);
                     const noPercent = (totalVote.no / totalVote.total) * 100;
 
                     let preferredVoteStatus = false;
@@ -101,14 +102,24 @@ export default function checkVotesJob(discord, prisma) {
 }
 
 function createMessage(userId, vote) {
-    let message = '';
+    const message = `Hey <@${userId}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;
 
-    message += `<@${userId}> `;
-    message += `, ${_.startCase(vote.chain)} için "${vote.vote ? "Yes" : "No"}" oyu verdi!.\n`;
-    message += `Tx Hash: \`${vote.txHash}\`\n`;
-    message += `Height: \`${vote.height}\`, Poll Id: \`${vote.pollId}\``;
+    const embed = new EmbedBuilder()
+        .setTitle('Axelarscan Link')
+        .setURL(`https://axelarscan.io/evm-votes?pollId=${vote.pollId}`)
+        .setColor(0xFF0000)
+        .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
+        .addFields(
+            {name: 'Poll ID', value: vote.pollId.toString(), inline: true},
+            {name: 'Height', value: vote.height.toString(), inline: true},
+            {name: 'Tx Hash', value: vote.txHash.toString()},
+            {name: 'Voter Address', value: vote.voter.toString()},
+        );
 
-    return message;
+    return {
+        content: message,
+        embeds: [embed]
+    };
 }
 
 async function saveVotes(prisma, votes) {
