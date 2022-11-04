@@ -12,13 +12,13 @@ CREATE TABLE "Vote" (
 );
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE "Address" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "address" TEXT NOT NULL,
     "channelId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL
+    "userIds" TEXT NOT NULL
 );
 
 -- CreateTable
@@ -27,10 +27,7 @@ CREATE TABLE "Notification" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "pollId" TEXT NOT NULL,
-    "txHash" TEXT NOT NULL,
-    "height" INTEGER NOT NULL,
-    "voter" TEXT NOT NULL,
-    "userId" TEXT NOT NULL
+    "address" TEXT NOT NULL
 );
 
 -- CreateIndex

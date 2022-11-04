@@ -21,8 +21,6 @@ export default function checkVotesJob(discord, prisma) {
                 return;
             }
 
-            const users = await prisma.user.findMany();
-
             const totalVotes = votes.reduce((acc, vote) => {
                 const curr = acc.find(m => m.pollId === vote.pollId);
                 if (curr) {
@@ -34,7 +32,7 @@ export default function checkVotesJob(discord, prisma) {
                     }
                 } else {
                     acc.push({
-                        pollId: vote.height,
+                        pollId: vote.pollId,
                         total: 1,
                         yes: vote.vote ? 1 : 0,
                         no: vote.vote ? 0 : 1,
@@ -44,48 +42,98 @@ export default function checkVotesJob(discord, prisma) {
                 return acc;
             }, []);
 
+            for (const totalVote of totalVotes) {
+                let preferredVoteStatus = false;
 
-            for (const user of users) {
-                const vote = votes.find(vote => vote.voter === user.address);
-                if (vote) {
-                    const totalVote = totalVotes.find(m => m.pollId === vote.pollId);
-                    const noPercent = (totalVote.no / totalVote.total) * 100;
+                const noPercent = (totalVote.no / totalVote.total) * 100;
+                if (noPercent > 60) {
+                    preferredVoteStatus = true;
+                }
 
-                    let preferredVoteStatus = false;
-                    if (noPercent > 60) {
-                        preferredVoteStatus = true;
-                    }
-
-                    if (vote.vote !== preferredVoteStatus) {
-                        continue;
-                    }
-
-                    const notification = await prisma.notification.findFirst({
-                        where: {
-                            userId: user.userId,
-                            height: vote.height,
-                            pollId: vote.pollId,
-                            txHash: vote.txHash,
+                const addresses = await prisma.address.findMany();
+                if (preferredVoteStatus) {
+                    const messagesToChannels = [];
+                    const addressesToSave = [];
+                    for (const address of addresses) {
+                        const vote = votes.find(m => m.pollId === totalVote.pollId && m.voter === address.address);
+                        if (!vote) {
+                            continue;
                         }
-                    });
 
-                    if (notification) {
-                        console.log('notification already sent');
-                        continue;
+                        if (!vote.vote) {
+                            continue;
+                        }
+
+                        const notification = await prisma.notification.findFirst({
+                            where: {
+                                address: address.address,
+                                pollId: vote.pollId,
+                            }
+                        });
+
+                        if (notification) {
+                            console.log('notification already sent');
+                            continue;
+                        }
+
+                        addressesToSave.push(address.address);
+
+                        const messageToChannel = messagesToChannels.find(m => m.channelId === address.channelId);
+                        if (messageToChannel) {
+                            messageToChannel.userIds.push(address.userIds.split(','));
+                        } else {
+                            messagesToChannels.push({
+                                channelId: address.channelId,
+                                userIds: address.userIds.split(','),
+                            });
+                        }
                     }
 
-                    const channel = await discord.channels.fetch(user.channelId);
-                    await channel.send(createMessage(user.userId, vote));
+                    for (const messageToChannel of messagesToChannels) {
+                        const message = `Voting result is incompatible with the majority.\nYou may need to check. <@${messageToChannel.userIds.join('>, <@')}>`;
+                        await sendMessage(discord, messageToChannel.channelId, message);
+                    }
 
-                    await prisma.notification.create({
-                        data: {
-                            userId: user.userId,
-                            height: vote.height,
-                            pollId: vote.pollId,
-                            txHash: vote.txHash,
-                            voter: vote.voter,
+                    for (const address of addressesToSave) {
+                        await prisma.notification.create({
+                            data: {
+                                address: address,
+                                pollId: totalVote.pollId,
+                            }
+                        });
+                    }
+                } else {
+                    for (const address of addresses) {
+                        const vote = votes.find(vote => vote.voter === address.address);
+                        if (!vote) {
+                            continue;
                         }
-                    });
+                        if (vote.vote !== preferredVoteStatus) {
+                            console.log('vote status yes not need to send message.');
+                            continue;
+                        }
+
+                        const notification = await prisma.notification.findFirst({
+                            where: {
+                                address: address.address,
+                                pollId: vote.pollId,
+                            }
+                        });
+
+                        if (notification) {
+                            console.log('notification already sent');
+                            continue;
+                        }
+
+                        await sendMessage(discord, address.channelId, createMessage(address.userIds.split(','), vote));
+
+                        await prisma.notification.create({
+                            data: {
+                                address: address.address,
+                                pollId: vote.pollId,
+                            }
+                        });
+                    }
                 }
             }
 
@@ -101,8 +149,8 @@ export default function checkVotesJob(discord, prisma) {
     cronJob.start();
 }
 
-function createMessage(userId, vote) {
-    const message = `Hey <@${userId}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;
+function createMessage(userIds, vote) {
+    const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;
 
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
@@ -120,6 +168,15 @@ function createMessage(userId, vote) {
         content: message,
         embeds: [embed]
     };
+}
+
+async function sendMessage(discord, channelId, message) {
+    try {
+        const channel = await discord.channels.fetch(channelId);
+        await channel.send(message);
+    } catch (error) {
+        console.log('sendMessage error', error);
+    }
 }
 
 async function saveVotes(prisma, votes) {

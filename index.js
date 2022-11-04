@@ -1,12 +1,12 @@
 import * as dotenv from 'dotenv';
+
 dotenv.config()
 
 import {Client, Events, GatewayIntentBits} from 'discord.js';
 import {PrismaClient} from '@prisma/client';
-import {exportVoterAddress} from "./utils.js";
 import checkVotesJob from "./jobs/check-votes-job.js";
 
-if(!process.env.DISCORD_TOKEN) {
+if (!process.env.DISCORD_TOKEN) {
     console.error('DISCORD_TOKEN is not set');
     process.exit(1);
 }
@@ -21,36 +21,70 @@ discord.on(Events.ClientReady, () => {
 });
 
 discord.on(Events.MessageCreate, async message => {
-    if (message.content.startsWith('$axelar') && message.mentions.users.size > 0) {
-        console.log(message.content);
+    if (message.content.startsWith('$add')) {
+        const voterAddress = message.content.split(' ')[1];
+        if (!voterAddress || !voterAddress.startsWith('axelar')) {
+            await message.reply('Please provide a valid voter address.');
+            return;
+        }
 
-        const voterAddress = exportVoterAddress(message.content);
-        const userId = message.mentions.users.first().id;
         const channelId = message.channel.id;
+        const userIds = message.mentions.users.map(m => m.id);
+        if (userIds.length === 0) {
+            userIds.push(message.author.id);
+        }
 
-        const user = await prisma.user.findFirst({
+        const address = await prisma.address.findFirst({
             where: {
                 address: voterAddress,
-                userId: userId,
                 channelId: channelId
             }
         });
 
-        if (user) {
-            console.log('user already registered');
-            await message.reply('You already registered!');
+        if (address) {
+            console.log('address already registered');
+            await message.reply('Address already registered.');
             return;
         }
 
-        await prisma.user.create({
+        await prisma.address.create({
             data: {
                 address: voterAddress,
-                userId: userId,
-                channelId: channelId
+                channelId: channelId,
+                userIds: userIds.join(','),
             }
         });
 
         await message.reply('Your registration has been successful!\nI will send you a message any changes in your voting status.');
+    } else if (message.content.startsWith('$delete') && message.mentions.users.size > 0) {
+        const voterAddress = message.content.split(' ')[1];
+        if (!voterAddress || !voterAddress.startsWith('axelar')) {
+            await message.reply('Please provide a valid voter address.');
+            return;
+        }
+
+        const channelId = message.channel.id;
+
+        const address = await prisma.address.findFirst({
+            where: {
+                address: voterAddress,
+                channelId: channelId
+            }
+        });
+
+        if (!address) {
+            console.log('address not found');
+            await message.reply('This address not registered!');
+            return;
+        }
+
+        await prisma.address.delete({
+            where: {
+                id: address.id
+            }
+        });
+
+        await message.reply('Your unregistration has been successful!');
     }
 });
 

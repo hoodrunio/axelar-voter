@@ -24,13 +24,13 @@ model Vote {
   @@unique([pollId, txHash, height, voter])
 }
 
-model User {
+model Address {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   address   String
   channelId String
-  userId    String
+  userIds    String
 }
 
 model Notification {
@@ -38,8 +38,5 @@ model Notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   pollId    String
-  txHash    String
-  height    Int
-  voter     String
-  userId    String
+  address    String
 }
