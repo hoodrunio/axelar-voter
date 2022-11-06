@@ -1,12 +1,9 @@
-import * as dotenv from 'dotenv';
-
-dotenv.config()
-
 import {Client, Events, GatewayIntentBits} from 'discord.js';
 import {PrismaClient} from '@prisma/client';
 import checkVotesJob from "./jobs/check-votes-job.js";
+import {DiscordToken, MainnetChannelId, setNoVotePercentage, TestnetChannelId} from "./config.js";
 
-if (!process.env.DISCORD_TOKEN) {
+if (!DiscordToken) {
     console.error('DISCORD_TOKEN is not set');
     process.exit(1);
 }
@@ -21,6 +18,13 @@ discord.on(Events.ClientReady, () => {
 });
 
 discord.on(Events.MessageCreate, async message => {
+    const channelId = message.channelId;
+    if (channelId !== MainnetChannelId || channelId !== TestnetChannelId) {
+        return;
+    }
+
+    const channelNetwork = channelId === MainnetChannelId ? 'mainnet' : 'testnet';
+
     if (message.content.startsWith('$add')) {
         const voterAddress = message.content.split(' ')[1];
         if (!voterAddress || !voterAddress.startsWith('axelar')) {
@@ -28,7 +32,6 @@ discord.on(Events.MessageCreate, async message => {
             return;
         }
 
-        const channelId = message.channel.id;
         const userIds = message.mentions.users.map(m => m.id);
         if (userIds.length === 0) {
             userIds.push(message.author.id);
@@ -37,7 +40,7 @@ discord.on(Events.MessageCreate, async message => {
         const address = await prisma.address.findFirst({
             where: {
                 address: voterAddress,
-                channelId: channelId
+                network: channelNetwork
             }
         });
 
@@ -50,25 +53,23 @@ discord.on(Events.MessageCreate, async message => {
         await prisma.address.create({
             data: {
                 address: voterAddress,
-                channelId: channelId,
+                network: channelNetwork,
                 userIds: userIds.join(','),
             }
         });
 
         await message.reply('Your registration has been successful!\nI will send you a message any changes in your voting status.');
-    } else if (message.content.startsWith('$delete') && message.mentions.users.size > 0) {
+    } else if (message.content.startsWith('$delete')) {
         const voterAddress = message.content.split(' ')[1];
         if (!voterAddress || !voterAddress.startsWith('axelar')) {
             await message.reply('Please provide a valid voter address.');
             return;
         }
 
-        const channelId = message.channel.id;
-
         const address = await prisma.address.findFirst({
             where: {
                 address: voterAddress,
-                channelId: channelId
+                channel: channelNetwork
             }
         });
 
@@ -88,4 +89,4 @@ discord.on(Events.MessageCreate, async message => {
     }
 });
 
-await discord.login(process.env.DISCORD_TOKEN);
+await discord.login(DiscordToken);

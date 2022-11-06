@@ -20,8 +20,9 @@ model Vote {
   height    Int
   voter     String
   vote      Boolean  @default(false)
+  network   String
 
-  @@unique([pollId, txHash, height, voter])
+  @@unique([pollId, txHash, height, voter, network])
 }
 
 model Address {
@@ -29,8 +30,8 @@ model Address {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   address   String
-  channelId String
-  userIds    String
+  network   String
+  userIds   String
 }
 
 model Notification {
@@ -38,5 +39,6 @@ model Notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   pollId    String
-  address    String
+  address   String
+  network   String
 }
