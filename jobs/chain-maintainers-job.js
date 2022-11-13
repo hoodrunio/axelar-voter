@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import {getChainMaintainers} from "../lib/rpc.js";
 import {getChannelIdFromNetwork, getWebsocketFromNetwork} from "../config/env.js";
-import {prisma} from "../services/database.js";
+import {getAddress} from "../services/database.js";
 import {sendMessage} from "../services/discord.js";
 
 export default function chainMaintainersJob() {
@@ -50,13 +50,7 @@ async function checkChainMaintainers(height, network = 'mainnet') {
     }
 
     for (const chainMaintainer of chainMaintainers) {
-        const address = await prisma.address.findFirst({
-            where: {
-                operatorAddress: chainMaintainer.address,
-                network: network,
-            }
-        });
-
+        const address = await getAddress({operatorAddress: chainMaintainer.address}, network);
         if (!address) {
             continue;
         }

@@ -4,7 +4,7 @@ import {EmbedBuilder} from "discord.js";
 import {getPolls} from "../lib/axelarscan.js";
 import {getChannelIdFromNetwork, getNoVotePercentageFromNetwork} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
-import {prisma} from "../services/database.js";
+import {getAddressesByNetwork, getExistsPoll, savePoll} from "../services/database.js";
 
 export default function checkPollsJob() {
     let isRunning = false;
@@ -43,14 +43,7 @@ async function processVotes(network = 'mainnet') {
     const defaultNoPercentageNetwork = getNoVotePercentageFromNetwork(network);
 
     for (const poll of polls) {
-        const existsPoll = await prisma.poll.findFirst({
-            where: {
-                height: poll.height,
-                pollId: poll.id,
-                network: network,
-            }
-        });
-
+        const existsPoll = getExistsPoll(poll.id, network);
         if (existsPoll) {
             console.log(`[${network}] poll ${poll.id} already exists.`);
             continue;
@@ -65,11 +58,7 @@ async function processVotes(network = 'mainnet') {
             continue;
         }
 
-        const addresses = await prisma.address.findMany({
-            where: {
-                network: network,
-            }
-        });
+        const addresses = await getAddressesByNetwork(network);
 
         if (poll.noVotesPercentage > defaultNoPercentageNetwork) {
             console.log(`[${network}] poll ${poll.id} no votes percentage is greater than ${defaultNoPercentageNetwork}. Sending message all yes votes...`);
@@ -98,24 +87,6 @@ async function sendPollFailedMessage(pollId, network = 'mainnet') {
     await sendMessage(getChannelIdFromNetwork(network), messageText);
 }
 
-async function savePoll(poll, network) {
-    await prisma.poll.create({
-        data: {
-            pollId: poll.id,
-            height: poll.height,
-            network: network,
-            chain: poll.chain,
-            txHash: poll.txHash,
-            data: JSON.stringify(poll),
-            votes: {
-                create: poll.votes.map(vote => ({
-                    voter: vote.voter,
-                    vote: vote.vote,
-                }))
-            },
-        }
-    });
-}
 
 function createVoteResultMessage(userIds, vote) {
     const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;
