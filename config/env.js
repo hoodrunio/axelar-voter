@@ -3,6 +3,7 @@ import 'dotenv/config';
 export const DiscordToken = process.env.DISCORD_TOKEN;
 export const MainnetChannelId = process.env.MAINNET_CHANNEL_ID;
 export const TestnetChannelId = process.env.TESTNET_CHANNEL_ID;
+export const PollFailedNotifyUsers = process.env.POLL_FAILED_NOTIFY_USERS;
 export const MainnetWebsocket = process.env.MAINNET_WEBSOCKET;
 export const TestnetWebsocket = process.env.TESTNET_WEBSOCKET;
 export const MainnetRpc = process.env.MAINNET_RPC;

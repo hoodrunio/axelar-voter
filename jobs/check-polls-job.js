@@ -2,7 +2,7 @@ import {CronJob} from "cron";
 import _ from "lodash";
 import {EmbedBuilder} from "discord.js";
 import {getPolls} from "../lib/axelarscan.js";
-import {getChannelIdFromNetwork, getNoVotePercentageFromNetwork} from "../config/env.js";
+import {getChannelIdFromNetwork, getNoVotePercentageFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
 import {getAddressesByNetwork, getExistsPoll, savePoll} from "../services/database.js";
 
@@ -77,23 +77,28 @@ async function processVotes(network = 'mainnet') {
             if (!vote || vote.vote) {
                 continue;
             }
-            await sendMessage(channelId, createVoteResultMessage(address.userIds.split(','), vote));
+            await sendMessage(channelId, createVoteResultMessage(address.userIds.split(','), vote, network));
         }
     }
 }
 
 async function sendPollFailedMessage(pollId, network = 'mainnet') {
-    const messageText = `Voting Failed. Poll Id: ${pollId}`;
+    if (!PollFailedNotifyUsers) {
+        console.log(`[${network}] poll ${pollId} failed. No users to notify. Set env.`);
+        return;
+    }
+
+    const messageText = `Hey <@${PollFailedNotifyUsers.split(',').join('>, <@')}>, ${pollId} poll failed.`;
     await sendMessage(getChannelIdFromNetwork(network), messageText);
 }
 
 
-function createVoteResultMessage(userIds, vote) {
+function createVoteResultMessage(userIds, vote, network = 'mainnet') {
     const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;
 
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
-        .setURL(`https://axelarscan.io/evm-votes?pollId=${vote.pollId}`)
+        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-votes?pollId=${vote.pollId}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
         .addFields(
