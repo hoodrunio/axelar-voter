@@ -10,35 +10,36 @@ datasource db {
   url      = "file:./database.db"
 }
 
+model Poll {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  pollId    String
+  height    Int
+  network   String
+  chain     String
+  txHash    String
+  data      String
+  votes     Vote[]
+
+  @@unique([pollId, network])
+}
+
 model Vote {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  chain     String
-  pollId    String
-  txHash    String
-  height    Int
-  voter     String
-  vote      Boolean  @default(false)
-  network   String
+  poll      Poll     @relation(fields: [pollId], references: [id])
+  pollId    Int
 
-  @@unique([pollId, txHash, height, voter, network])
+  voter String
+  vote  Boolean
 }
 
 model Address {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  address   String
-  network   String
-  userIds   String
-}
-
-model Notification {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  pollId    String
-  address   String
-  network   String
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  voterAddress    String
+  operatorAddress String
+  network         String
+  userIds         String
 }
