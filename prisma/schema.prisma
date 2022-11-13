@@ -18,6 +18,8 @@ model Poll {
   network   String
   chain     String
   txHash    String
+  success   Boolean
+  failed    Boolean
   data      String
   votes     Vote[]
 

@@ -15,16 +15,16 @@ export default function checkPollsJob() {
 
         isRunning = true;
         try {
-            console.log('checkVotesJob started.');
+            console.log('checkPollsJob started.');
 
             await Promise.all([
                 processVotes('mainnet'),
                 processVotes('testnet'),
             ]);
 
-            console.log('checkVotesJob finished.');
+            console.log('checkPollsJob finished.');
         } catch (error) {
-            console.log('checkVotesJob got error', error);
+            console.log('checkPollsJob got error', error);
         } finally {
             isRunning = false;
         }
@@ -43,9 +43,9 @@ async function processVotes(network = 'mainnet') {
     const defaultNoPercentageNetwork = getNoVotePercentageFromNetwork(network);
 
     for (const poll of polls) {
-        const existsPoll = getExistsPoll(poll.id, network);
+        const existsPoll = await getExistsPoll(poll.id, network);
         if (existsPoll) {
-            // console.log(`[${network}] poll ${poll.id} already exists.`);
+            console.log(`[${network}] poll ${poll.id} already exists.`);
             continue;
         }
 

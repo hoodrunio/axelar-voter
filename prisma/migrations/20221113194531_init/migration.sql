@@ -7,6 +7,8 @@ CREATE TABLE "Poll" (
     "network" TEXT NOT NULL,
     "chain" TEXT NOT NULL,
     "txHash" TEXT NOT NULL,
+    "success" BOOLEAN NOT NULL,
+    "failed" BOOLEAN NOT NULL,
     "data" TEXT NOT NULL
 );
 

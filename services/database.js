@@ -48,13 +48,15 @@ export async function getExistsPoll(pollId, network) {
 }
 
 export async function savePoll(poll, network) {
-    await prisma.poll.create({
+   const result =  await prisma.poll.create({
         data: {
             pollId: poll.id,
             height: poll.height,
             network: network,
             chain: poll.chain,
             txHash: poll.txHash,
+            success: poll.success,
+            failed: poll.failed,
             data: JSON.stringify(poll),
             votes: {
                 create: poll.votes.map(vote => ({
@@ -62,6 +64,32 @@ export async function savePoll(poll, network) {
                     vote: vote.vote,
                 }))
             },
+        }
+    });
+   console.log(result);
+}
+
+export async function getAddressVotes(address, network) {
+    return await prisma.vote.findMany({
+        where: {
+            voter: address,
+            poll: {
+                network: network,
+            }
+        },
+        select: {
+            voter: true,
+            vote: true,
+            poll: {
+                select: {
+                    pollId: true,
+                    height: true,
+                    chain: true,
+                    txHash: true,
+                    success: true,
+                    failed: true,
+                }
+            }
         }
     });
 }
