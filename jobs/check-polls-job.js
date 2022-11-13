@@ -45,7 +45,7 @@ async function processVotes(network = 'mainnet') {
     for (const poll of polls) {
         const existsPoll = await getExistsPoll(poll.id, network);
         if (existsPoll) {
-            console.log(`[${network}] poll ${poll.id} already exists.`);
+            //console.log(`[${network}] poll ${poll.id} already exists.`);
             continue;
         }
 
