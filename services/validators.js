@@ -20,3 +20,18 @@ export function getValidators(network = 'mainnet') {
 
     return validators[network];
 }
+
+export function getMonikerByProxyAddress(proxyAddress, network = 'mainnet') {
+    const validators = getValidators(network);
+    if(!validators || validators.length === 0) {
+        return proxyAddress;
+    }
+
+    const validator = validators.find(validator => validator.proxy_address === proxyAddress);
+    if (!validator) {
+        return null;
+    }
+
+    console.log('validator', validator);
+    return validator.description.moniker;
+}

@@ -5,7 +5,7 @@ import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
 import {deleteAddress, getAddress, saveAddress} from "./database.js";
 import {getPoll} from "../lib/axelarscan.js";
-import {getValidators} from "./validators.js";
+import {getMonikerByProxyAddress} from "./validators.js";
 
 
 export const discord = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent,]});
@@ -78,9 +78,9 @@ export async function setupDiscord(discordBotToken) {
                     userIds: userIds.join(','),
                 }, channelNetwork);
 
-                const messageStr = 'Your registration has been successful!\n' +
-                    'I will send you a message any changes in your voting status.\n\n' +
-                    `Your Voter Address: \`${voterAddress}\``;
+                const messageStr =
+                    `Registration done for ${getMonikerByProxyAddress(voterAddress, channelNetwork)}!\n` +
+                    `Voter Address: \`${voterAddress}\``;
                 await message.reply(messageStr);
             } else if (message.content.startsWith('$delete')) {
                 const operatorAddress = message.content.split(' ')[1];
@@ -140,8 +140,6 @@ async function sendPollDetailsMessage(message, pollId, network) {
         );
 
 
-    const validators = getValidators(network);
-
     const votesEmbed = [];
     for (const chunkElement of _.chunk(poll.votes, 20)) {
         const embedVotes = new EmbedBuilder()
@@ -149,7 +147,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
             .addFields(
                 {
                     name: 'Voter',
-                    value: chunkElement.map(m => validators?.find(v => v.proxy_address === m.voter)?.description?.moniker ?? m.voter).join('\n'),
+                    value: chunkElement.map(m => getMonikerByProxyAddress(m.voter, network)).join('\n'),
                     inline: true
                 },
                 {name: 'Vote', value: chunkElement.map(m => m.vote ? '✅' : '❌').join('\n'), inline: true},
