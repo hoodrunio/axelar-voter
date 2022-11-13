@@ -32,6 +32,5 @@ export function getMonikerByProxyAddress(proxyAddress, network = 'mainnet') {
         return null;
     }
 
-    console.log('validator', validator);
     return validator.description.moniker;
 }

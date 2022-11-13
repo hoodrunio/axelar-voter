@@ -48,7 +48,7 @@ export async function getExistsPoll(pollId, network) {
 }
 
 export async function savePoll(poll, network) {
-   const result =  await prisma.poll.create({
+    await prisma.poll.create({
         data: {
             pollId: poll.id,
             height: poll.height,
@@ -66,7 +66,6 @@ export async function savePoll(poll, network) {
             },
         }
     });
-   console.log(result);
 }
 
 export async function getAddressVotes(address, network) {
