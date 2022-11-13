@@ -1,5 +1,6 @@
 import {DiscordToken} from "./config/env.js";
 import {setupDiscord} from "./services/discord.js";
+import {setupValidators} from "./services/validators.js";
 
 if (!DiscordToken) {
     console.error('DISCORD_TOKEN is not set');
@@ -7,3 +8,5 @@ if (!DiscordToken) {
 }
 
 await setupDiscord(DiscordToken);
+await setupValidators();
+

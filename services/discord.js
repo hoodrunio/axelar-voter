@@ -5,6 +5,7 @@ import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
 import {deleteAddress, getAddress, saveAddress} from "./database.js";
 import {getPoll} from "../lib/axelarscan.js";
+import {getValidators} from "./validators.js";
 
 
 export const discord = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent,]});
@@ -138,6 +139,24 @@ async function sendPollDetailsMessage(message, pollId, network) {
             {name: 'No Votes', value: poll.noVotes.toString()},
         );
 
-    await message.reply({content: '', embeds: [embed]});
+
+    const validators = getValidators(network);
+
+    const votesEmbed = [];
+    for (const chunkElement of _.chunk(poll.votes, 20)) {
+        const embedVotes = new EmbedBuilder()
+            .setColor(0xFF0000)
+            .addFields(
+                {
+                    name: 'Voter',
+                    value: chunkElement.map(m => validators?.find(v => v.proxy_address === m.voter)?.description?.moniker ?? m.voter).join('\n'),
+                    inline: true
+                },
+                {name: 'Vote', value: chunkElement.map(m => m.vote ? '✅' : '❌').join('\n'), inline: true},
+            );
+        votesEmbed.push(embedVotes);
+    }
+
+    await message.reply({content: '', embeds: [embed, ...votesEmbed]});
 }
 
