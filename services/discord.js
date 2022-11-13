@@ -1,10 +1,21 @@
-import {Client, Events, GatewayIntentBits} from "discord.js";
+import {Client, EmbedBuilder, Events, GatewayIntentBits} from "discord.js";
 import {MainnetChannelId, TestnetChannelId} from "../config/env.js";
 import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
 import {deleteAddress, getAddress, saveAddress} from "./database.js";
+import {getPoll} from "../lib/axelarscan.js";
+
 
 export const discord = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent,]});
+
+export async function sendMessage(channelId, message) {
+    try {
+        const channel = await discord.channels.fetch(channelId);
+        await channel.send(message);
+    } catch (error) {
+        console.log('sendMessage error', error);
+    }
+}
 
 export async function setupDiscord(discordBotToken) {
     discord.on(Events.ClientReady, () => {
@@ -80,20 +91,44 @@ export async function setupDiscord(discordBotToken) {
                 await deleteAddress(address.id);
 
                 await message.reply('Your unregistration has been successful!');
+            } else if (message.content.startsWith('$help')) {
+                const message = `Hello, I am a bot that will notify you of any changes in your voting status.
+                To register your address, use the command: $add <operator address> @<user1> @<user2> (@<users> is optional)
+                To unregister your address, use the command: $delete <operator address>
+                `;
+                await message.reply(message);
+            } else if (message.content.startsWith('$poll')) {
+                const pollId = message.content.split(' ')[1];
+                await sendPollDetailsMessage(message, pollId, channelNetwork);
             }
         }
-    )
-    ;
+    );
 
     await discord.login(discordBotToken);
 }
 
-export async function sendMessage(channelId, message) {
-    try {
-        const channel = await discord.channels.fetch(channelId);
-        await channel.send(message);
-    } catch (error) {
-        console.log('sendMessage error', error);
+async function sendPollDetailsMessage(message, pollId, network) {
+    const poll = await getPoll(pollId, network);
+    if (!poll) {
+        await message.reply('Poll not found');
+        return;
     }
+
+    const embed = new EmbedBuilder()
+        .setTitle('Axelarscan Link')
+        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${pollId}`)
+        .setColor(0xFF0000)
+        .setAuthor({name: 'Axelar Poll', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
+        .addFields(
+            {name: 'Poll ID', value: poll.id.toString(), inline: true},
+            {name: 'Height', value: poll.height.toString(), inline: true},
+            {name: 'Tx Hash', value: poll.txHash.toString()},
+            {name: 'Status', value: poll.success ? 'Success' : poll.failed ? 'Failed' : 'Pending'},
+            {name: 'Total Votes', value: poll.totalVotes.toString()},
+            {name: 'Yes Votes', value: poll.yesVotes.toString()},
+            {name: 'No Votes', value: poll.noVotes.toString()},
+        );
+
+    await message.reply({content: '', embeds: [embed]});
 }
 
