@@ -36,10 +36,10 @@ export async function setupDiscord(discordBotToken) {
             if (message.content.startsWith('$help')) {
                 const messageStr =
                     'Hello, I am a bot that will notify you of any changes in your voting status.\n' +
-                    'To check bot is working, type `$ping`.\n' +
-                    'To register your address, use the command: $add <operator address> @<user1> @<user2> (@<users> is optional)\n' +
-                    'To unregister your address, use the command: $delete <operator address>\n' +
-                    'To get the details of a poll, use the command: $poll <poll id>';
+                    'To check bot is working, type `$ping`\n' +
+                    'To register your address, use the command: `$add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
+                    'To unregister your address, use the command: `$delete <operator address>`\n' +
+                    'To get the details of a poll, use the command: `$poll <poll id>`';
 
                 await message.reply(messageStr);
             } else if (message.content.startsWith('$ping')) {
