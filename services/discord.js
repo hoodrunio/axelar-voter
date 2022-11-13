@@ -1,4 +1,5 @@
 import {Client, EmbedBuilder, Events, GatewayIntentBits} from "discord.js";
+import _ from "lodash";
 import {MainnetChannelId, TestnetChannelId} from "../config/env.js";
 import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
@@ -129,6 +130,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
         .addFields(
             {name: 'Poll ID', value: poll.id.toString(), inline: true},
             {name: 'Height', value: poll.height.toString(), inline: true},
+            {name: 'Chain', value: _.startCase(poll.chain)},
             {name: 'Tx Hash', value: poll.txHash.toString()},
             {name: 'Status', value: poll.success ? 'Success' : poll.failed ? 'Failed' : 'Pending'},
             {name: 'Total Votes', value: poll.totalVotes.toString()},
