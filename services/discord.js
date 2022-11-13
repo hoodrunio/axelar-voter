@@ -33,7 +33,18 @@ export async function setupDiscord(discordBotToken) {
 
             const channelNetwork = channelId === MainnetChannelId ? 'mainnet' : 'testnet';
 
-            if (message.content.startsWith('$add')) {
+            if (message.content.startsWith('$help')) {
+                const messageStr =
+                    'Hello, I am a bot that will notify you of any changes in your voting status.\n' +
+                    'To check bot is working, type `$ping`.\n' +
+                    'To register your address, use the command: $add <operator address> @<user1> @<user2> (@<users> is optional)\n' +
+                    'To unregister your address, use the command: $delete <operator address>\n' +
+                    'To get the details of a poll, use the command: $poll <poll id>';
+
+                await message.reply(messageStr);
+            } else if (message.content.startsWith('$ping')) {
+                await message.reply('pong 🏓');
+            } else if (message.content.startsWith('$add')) {
                 const operatorAddress = message.content.split(' ')[1];
                 let voterAddress = '';
                 try {
@@ -65,8 +76,10 @@ export async function setupDiscord(discordBotToken) {
                     userIds: userIds.join(','),
                 }, channelNetwork);
 
-
-                await message.reply('Your registration has been successful!\nI will send you a message any changes in your voting status.');
+                const messageStr = 'Your registration has been successful!\n' +
+                    'I will send you a message any changes in your voting status.\n\n' +
+                    `Your Voter Address: \`${voterAddress}\``;
+                await message.reply(messageStr);
             } else if (message.content.startsWith('$delete')) {
                 const operatorAddress = message.content.split(' ')[1];
                 let voterAddress = '';
@@ -91,12 +104,6 @@ export async function setupDiscord(discordBotToken) {
                 await deleteAddress(address.id);
 
                 await message.reply('Your unregistration has been successful!');
-            } else if (message.content.startsWith('$help')) {
-                const message = `Hello, I am a bot that will notify you of any changes in your voting status.
-                To register your address, use the command: $add <operator address> @<user1> @<user2> (@<users> is optional)
-                To unregister your address, use the command: $delete <operator address>
-                `;
-                await message.reply(message);
             } else if (message.content.startsWith('$poll')) {
                 const pollId = message.content.split(' ')[1];
                 await sendPollDetailsMessage(message, pollId, channelNetwork);
