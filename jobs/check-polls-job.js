@@ -10,6 +10,7 @@ export default function checkPollsJob() {
     let isRunning = false;
     const cronJob = new CronJob('*/30 * * * * *', async () => {
         if (isRunning) {
+            console.log('checkPollsJob is already running.');
             return;
         }
 

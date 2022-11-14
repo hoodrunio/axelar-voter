@@ -56,7 +56,7 @@ async function checkChainMaintainers(height, network = 'mainnet') {
 
         let messageText = `**${getMonikerByOperatorAddress(chainMaintainer.address)}}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"} as **${chainMaintainer.chain}** maintainer!`;
         if (address) {
-            messageText += ` <@${address.userIds.join('>, <@')}>`;
+            messageText += ` <@${address.userIds.split(',').join('>, <@')}>`;
         }
 
         const embed = new EmbedBuilder()
