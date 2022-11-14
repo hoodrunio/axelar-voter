@@ -23,13 +23,13 @@ export function getValidators(network = 'mainnet') {
 
 export function getMonikerByProxyAddress(proxyAddress, network = 'mainnet') {
     const validators = getValidators(network);
-    if(!validators || validators.length === 0) {
+    if (!validators || validators.length === 0) {
         return proxyAddress;
     }
 
     const validator = validators.find(validator => validator.proxy_address === proxyAddress);
     if (!validator) {
-        return null;
+        return proxyAddress;
     }
 
     return validator.description.moniker;
@@ -37,13 +37,13 @@ export function getMonikerByProxyAddress(proxyAddress, network = 'mainnet') {
 
 export function getMonikerByOperatorAddress(operatorAddress, network = 'mainnet') {
     const validators = getValidators(network);
-    if(!validators || validators.length === 0) {
+    if (!validators || validators.length === 0) {
         return operatorAddress;
     }
 
     const validator = validators.find(validator => validator.operator_address === operatorAddress);
     if (!validator) {
-        return null;
+        return operatorAddress;
     }
 
     return validator.description.moniker;
