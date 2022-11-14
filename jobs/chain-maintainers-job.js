@@ -3,6 +3,8 @@ import {getChainMaintainers} from "../lib/rpc.js";
 import {getChannelIdFromNetwork, getWebsocketFromNetwork} from "../config/env.js";
 import {getAddress} from "../services/database.js";
 import {sendMessage} from "../services/discord.js";
+import {EmbedBuilder} from "discord.js";
+import {getMonikerByOperatorAddress} from "../services/validators.js";
 
 export default function chainMaintainersJob() {
     process('mainnet');
@@ -51,11 +53,29 @@ async function checkChainMaintainers(height, network = 'mainnet') {
 
     for (const chainMaintainer of chainMaintainers) {
         const address = await getAddress({operatorAddress: chainMaintainer.address}, network);
-        if (!address) {
-            continue;
+
+        let messageText = `**${getMonikerByOperatorAddress(chainMaintainer.address)}}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"} as **${chainMaintainer.chain}** maintainer!`;
+        if (address) {
+            messageText += ` <@${address.userIds.join('>, <@')}>`;
         }
 
-        const messageText = `Hey, <@${address.userIds.split(',')}>  ${chainMaintainer.action === "register" ? "REGISTER" : "DEREGISTER"} ${chainMaintainer.chain}`;
-        await sendMessage(getChannelIdFromNetwork(network), messageText);
+        const embed = new EmbedBuilder()
+            .setTitle('Chain Maintainer Register')
+            .setColor(chainMaintainer.action === "register" ? 0x4BB543 : 0xF32013)
+            .addFields(
+                {
+                    name: `${chainMaintainer.action === "register" ? "Registration" : "Deregistration"} Notification`,
+                    value: `**${getMonikerByOperatorAddress(chainMaintainer.address)}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"} as **${chainMaintainer.chain}** maintainer!`
+                },
+                {
+                    name: 'Axelar Scan Link',
+                    value: `https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${chainMaintainer.address}`
+                },
+            );
+
+        await sendMessage(getChannelIdFromNetwork(network), {
+            content: messageText,
+            embeds: [embed]
+        });
     }
 }

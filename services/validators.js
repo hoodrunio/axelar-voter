@@ -34,3 +34,17 @@ export function getMonikerByProxyAddress(proxyAddress, network = 'mainnet') {
 
     return validator.description.moniker;
 }
+
+export function getMonikerByOperatorAddress(operatorAddress, network = 'mainnet') {
+    const validators = getValidators(network);
+    if(!validators || validators.length === 0) {
+        return operatorAddress;
+    }
+
+    const validator = validators.find(validator => validator.operator_address === operatorAddress);
+    if (!validator) {
+        return null;
+    }
+
+    return validator.description.moniker;
+}
