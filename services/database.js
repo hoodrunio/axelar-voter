@@ -1,5 +1,4 @@
 import {PrismaClient} from "@prisma/client";
-import _ from "lodash";
 
 export const prisma = new PrismaClient();
 
@@ -100,122 +99,88 @@ export async function getAddressVotes(address, network) {
 }
 
 export async function getVotersStats(network) {
-    const groupNoVotes = await prisma.vote.groupBy({
-        by: ['voter'],
-        where: {
-            vote: false,
-            poll: {
-                network: network,
-                failed: false,
-                success: true,
+    const [yesVotes,noVotes,failedYesVotes,failednoVotes] = await Promise.all([
+        // yes votes
+        prisma.vote.groupBy({
+            by: ['voter'],
+            where: {
+                vote: true,
+                poll: {
+                    network: network,
+                    failed: false,
+                    success: true,
+                },
             },
-        },
-        _count: {
-            vote: true,
-        },
-    });
-
-    const groupYesVotes = await prisma.vote.groupBy({
-        by: ['voter'],
-        where: {
-            vote: true,
-            poll: {
-                network: network,
-                failed: false,
-                success: true,
+            _count: {
+                vote: true,
             },
-        },
-        _count: {
-            vote: true,
-        },
-    });
-
-    const groupFailedNoVotes = await prisma.vote.groupBy({
-        by: ['voter'],
-        where: {
-            vote: false,
-            poll: {
-                network: network,
-                failed: true,
-                success: false,
+        }),
+        // no votes
+        prisma.vote.groupBy({
+            by: ['voter'],
+            where: {
+                vote: false,
+                poll: {
+                    network: network,
+                    failed: false,
+                    success: true,
+                },
             },
-        },
-        _count: {
-            vote: true,
-        },
-    });
-
-    const groupFailedYesVotes = await prisma.vote.groupBy({
-        by: ['voter'],
-        where: {
-            vote: true,
-            poll: {
-                network: network,
-                failed: true,
-                success: false,
+            _count: {
+                vote: true,
             },
-        },
-        _count: {
-            vote: true,
-        },
-    });
+        }),
+        // failed yes votes
+        prisma.vote.groupBy({
+            by: ['voter'],
+            where: {
+                vote: true,
+                poll: {
+                    network: network,
+                    failed: true,
+                    success: false,
+                },
+            },
+            _count: {
+                vote: true,
+            },
+        }),
+        // failed no votes
+        prisma.vote.groupBy({
+            by: ['voter'],
+            where: {
+                vote: false,
+                poll: {
+                    network: network,
+                    failed: true,
+                    success: false,
+                },
+            },
+            _count: {
+                vote: true,
+            },
+        })
+    ]);
 
-    const stats = {};
-    for (const groupNoVote of groupNoVotes) {
-        if (!stats[groupNoVote.voter]) {
-            stats[groupNoVote.voter] = {
-                failedNo: 0,
-                failedYes: 0,
-                no: groupNoVote._count.vote,
-                yes: 0,
-            };
-
-        } else {
-            stats[groupNoVote.voter].no = groupNoVote._count.vote;
+    const voters = {};
+    const processVotes = (votes, field) => {
+        for (const vote of votes) {
+            if (!voters[vote.voter]) {
+                voters[vote.voter] = {
+                    yes: 0,
+                    no: 0,
+                    failedYes: 0,
+                    failedNo: 0,
+                };
+            }
+            voters[vote.voter][field] = vote._count.vote;
         }
-    }
+    };
 
-    for (const groupYesVote of groupYesVotes) {
-        if (!stats[groupYesVote.voter]) {
-            stats[groupYesVote.voter] = {
-                failedNo: 0,
-                failedYes: 0,
-                no: 0,
-                yes: groupYesVote._count.vote,
-            };
+    processVotes(yesVotes, 'yes');
+    processVotes(noVotes, 'no');
+    processVotes(failedYesVotes, 'failedYes');
+    processVotes(failednoVotes, 'failedNo');
 
-        } else {
-            stats[groupYesVote.voter].yes = groupYesVote._count.vote;
-        }
-    }
-
-    for (const groupFailedNoVote of groupFailedNoVotes) {
-        if (!stats[groupFailedNoVote.voter]) {
-            stats[groupFailedNoVote.voter] = {
-                failedNo: groupFailedNoVote._count.vote,
-                failedYes: 0,
-                no: 0,
-                yes: 0,
-            };
-
-        } else {
-            stats[groupFailedNoVote.voter].failedNo = groupFailedNoVote._count.vote;
-        }
-    }
-
-    for (const groupFailedYesVote of groupFailedYesVotes) {
-        if (!stats[groupFailedYesVote.voter]) {
-            stats[groupFailedYesVote.voter] = {
-                failedNo: 0,
-                failedYes: groupFailedYesVote._count.vote,
-                no: 0,
-                yes: 0,
-            };
-
-        } else {
-            stats[groupFailedYesVote.voter].failedYes = groupFailedYesVote._count.vote;
-        }
-    }
-
-    return stats;
+    return Object.keys(voters).map(key => ({voter: key, ...voters[key]}));
 }

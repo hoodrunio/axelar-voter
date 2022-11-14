@@ -176,7 +176,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
 async function sendStatsAllMessage(message, network) {
     const votersStats = await getVotersStats(network);
 
-    for (const chunkElement of _.chunk(Object.keys(votersStats).map(key => ({voter: key, ...votersStats[key]})), 15)) {
+    for (const chunkElement of _.chunk(votersStats, 15)) {
         const messageStr = '```' +
             '               Voter               |   Yes   |   No   |  Yes (Failed)  |  No (Failed)  \n' +
             '-------------------------------------------------------------------------------------\n' +
