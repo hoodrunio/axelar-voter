@@ -3,9 +3,10 @@ import _ from "lodash";
 import {MainnetChannelId, TestnetChannelId} from "../config/env.js";
 import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
-import {deleteAddress, getAddress, getAddressVotes, saveAddress} from "./database.js";
+import {deleteAddress, getAddress, getAddressVotes, getVotersStats, saveAddress} from "./database.js";
 import {getPoll} from "../lib/axelarscan.js";
 import {getMonikerByProxyAddress} from "./validators.js";
+import {addSpaces} from "../helpers/string.js";
 
 
 export const discord = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent,]});
@@ -111,6 +112,8 @@ export async function setupDiscord(discordBotToken) {
             } else if (message.content.startsWith('$poll')) {
                 const pollId = message.content.split(' ')[1];
                 await sendPollDetailsMessage(message, pollId, channelNetwork);
+            } else if (message.content === '$stats all') {
+                await sendStatsAllMessage(message, channelNetwork);
             } else if (message.content.startsWith('$stats')) {
                 const operatorAddress = message.content.split(' ')[1];
 
@@ -129,7 +132,8 @@ export async function setupDiscord(discordBotToken) {
                 await sendVoterStatsMessage(message, voterAddress, channelNetwork);
             }
         }
-    );
+    )
+    ;
 
     await discord.login(discordBotToken);
 }
@@ -157,23 +161,29 @@ async function sendPollDetailsMessage(message, pollId, network) {
             {name: 'No Votes', value: poll.noVotes.toString()},
         );
 
+    await sendMessage(message.channelId, {embeds: [embed]});
 
-    const votesEmbed = [];
-    for (const chunkElement of _.chunk(poll.votes, 20)) {
-        const embedVotes = new EmbedBuilder()
-            .setColor(0xFF0000)
-            .addFields(
-                {
-                    name: 'Voter',
-                    value: chunkElement.map(m => getMonikerByProxyAddress(m.voter, network)).join('\n'),
-                    inline: true
-                },
-                {name: 'Vote', value: chunkElement.map(m => m.vote ? '✅' : '❌').join('\n'), inline: true},
-            );
-        votesEmbed.push(embedVotes);
+    for (const chunkElement of _.chunk(poll.votes, 15)) {
+        const messageStr = '```' +
+            '               Voter               |   Vote   \n' +
+            '----------------------------------------------\n' +
+            chunkElement.map(m => `${addSpaces(getMonikerByProxyAddress(m.voter, network), 35)}|${addSpaces(m.vote ? '✅' : '❌', 10)}`).join('\n') +
+            '```';
+        await sendMessage(message.channelId, messageStr);
     }
+}
 
-    await message.reply({content: '', embeds: [embed, ...votesEmbed]});
+async function sendStatsAllMessage(message, network) {
+    const votersStats = await getVotersStats(network);
+
+    for (const chunkElement of _.chunk(Object.keys(votersStats).map(key => ({voter: key, ...votersStats[key]})), 15)) {
+        const messageStr = '```' +
+            '               Voter               |   Yes   |   No   |  Yes (Failed)  |  No (Failed)  \n' +
+            '-------------------------------------------------------------------------------------\n' +
+            chunkElement.map(m => `${addSpaces(getMonikerByProxyAddress(m.voter, network), 35)}|${addSpaces(m.yes.toString(), 9)}|${addSpaces(m.no.toString(), 8)}|${addSpaces(m.failedYes.toString(), 16)}|${addSpaces(m.failedNo.toString(), 15)}`).join('\n') +
+            '```';
+        await sendMessage(message.channelId, messageStr);
+    }
 }
 
 async function sendVoterStatsMessage(message, voterAddress, network) {
@@ -195,29 +205,19 @@ async function sendVoterStatsMessage(message, voterAddress, network) {
             {name: 'No Votes', value: addressVotes.filter(m => !m.vote).length.toString()},
         );
 
-
-    const votesEmbed = [];
-    for (const chunkElement of _.chunk(addressVotes, 20)) {
-        const embedVotes = new EmbedBuilder()
-            .setColor(0xFF0000)
-            .addFields(
-                {
-                    name: 'Poll ID',
-                    value: chunkElement.map(m => m.poll.pollId).join('\n'),
-                    inline: true
-                },
-                {name: 'Vote', value: chunkElement.map(m => m.vote ? '✅' : '❌').join('\n'), inline: true},
-                {
-                    name: 'Poll Status',
-                    value: chunkElement.map(m => m.poll.success ? 'Success' : m.poll.failed ? 'Failed' : 'Pending').join('\n'),
-                    inline: true
-                },
-            );
-        votesEmbed.push(embedVotes);
-    }
-
-    await message.reply({
+    await sendMessage(message.channelId, {
         content: `Hey, ${getMonikerByProxyAddress(voterAddress, network)} here are your stats!`,
-        embeds: [embed, ...votesEmbed]
+        embeds: [embed]
     });
+
+
+    for (const chunkElement of _.chunk(addressVotes, 15)) {
+        const messageStr = '```' +
+            '  Poll ID  |  Poll Status  |  Vote  \n' +
+            '------------------------------------\n' +
+            chunkElement.map(m => `${addSpaces(m.poll.pollId.toString(), 11)}|${addSpaces(m.poll.success ? 'Success' : m.failed ? 'Failed' : 'Pending', 15)}|${addSpaces(m.vote ? '✅' : '❌', 8)}`).join('\n') +
+            '```';
+        await sendMessage(message.channelId, messageStr);
+    }
 }
+

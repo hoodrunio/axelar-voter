@@ -2,7 +2,7 @@ import {CronJob} from "cron";
 import _ from "lodash";
 import {EmbedBuilder} from "discord.js";
 import {getPolls} from "../lib/axelarscan.js";
-import {getChannelIdFromNetwork, getNoVotePercentageFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
+import {getChannelIdFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
 import {getAddressesByNetwork, getExistsPoll, savePoll} from "../services/database.js";
 
@@ -40,7 +40,6 @@ async function processVotes(network = 'mainnet') {
     }
 
     const channelId = getChannelIdFromNetwork(network);
-    const defaultNoPercentageNetwork = getNoVotePercentageFromNetwork(network);
 
     for (const poll of polls) {
         const existsPoll = await getExistsPoll(poll.id, network);
@@ -52,22 +51,12 @@ async function processVotes(network = 'mainnet') {
         console.log(`[${network}] poll ${poll.id} not exists. Saving...`);
         await savePoll(poll, network);
 
+        const addresses = await getAddressesByNetwork(network);
+
         if (poll.failed) {
             console.log(`[${network}] poll ${poll.id} failed. Sending message...`);
             await sendPollFailedMessage(poll.id, network);
-            continue;
-        }
-
-        const addresses = await getAddressesByNetwork(network);
-
-        if (poll.noVotesPercentage > defaultNoPercentageNetwork) {
-            console.log(`[${network}] poll ${poll.id} no votes percentage is greater than ${defaultNoPercentageNetwork}. Sending message all yes votes...`);
-            const userIds = addresses
-                .filter(address => poll.votes.find(vote => vote.voter === address.voterAddress && vote.vote))
-                .flatMap(address => address.userIds.split(','));
-
-            const messageText = `Voting result is incompatible with the majority.\nYou may need to check. <@${userIds.join('>, <@')}>`;
-            await sendMessage(channelId, messageText);
+            await sendYesVotersMessage(poll, addresses, channelId, network);
             continue;
         }
 
@@ -88,10 +77,19 @@ async function sendPollFailedMessage(pollId, network = 'mainnet') {
         return;
     }
 
-    const messageText = `Hey <@${PollFailedNotifyUsers.split(',').join('>, <@')}>, ${pollId} poll failed.`;
+    const messageText = `Poll ${pollId} had failed. <@${PollFailedNotifyUsers.split(',').join('>, <@')}>`;
     await sendMessage(getChannelIdFromNetwork(network), messageText);
 }
 
+async function sendYesVotersMessage(poll, addresses, channelId, network = 'mainnet') {
+    console.log(`[${network}] poll ${poll.id} failed. Sending message all yes votes...`);
+    const userIds = addresses
+        .filter(address => poll.votes.find(vote => vote.voter === address.voterAddress && vote.vote))
+        .flatMap(address => address.userIds.split(','));
+
+    const messageText = `Poll ${poll.id} had failed and you voted yes. <@${userIds.join('>, <@')}>`;
+    await sendMessage(channelId, messageText);
+}
 
 function createVoteResultMessage(userIds, vote, network = 'mainnet') {
     const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;

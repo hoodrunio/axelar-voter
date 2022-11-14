@@ -8,8 +8,7 @@ CREATE TABLE "Poll" (
     "chain" TEXT NOT NULL,
     "txHash" TEXT NOT NULL,
     "success" BOOLEAN NOT NULL,
-    "failed" BOOLEAN NOT NULL,
-    "data" TEXT NOT NULL
+    "failed" BOOLEAN NOT NULL
 );
 
 -- CreateTable
