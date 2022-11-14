@@ -39,7 +39,7 @@ export async function deleteAddress(addressId) {
 }
 
 export async function getExistsPoll(pollId, network) {
-    return prisma.poll.findFirst({
+    return await prisma.poll.findFirst({
         where: {
             pollId: pollId,
             network: network,
