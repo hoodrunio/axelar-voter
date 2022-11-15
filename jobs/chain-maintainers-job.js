@@ -5,6 +5,7 @@ import {getAddress} from "../services/database.js";
 import {sendMessage} from "../services/discord.js";
 import {EmbedBuilder} from "discord.js";
 import {getMonikerByOperatorAddress} from "../services/validators.js";
+import settings from "../config/settings.js";
 
 export default function chainMaintainersJob() {
     process('mainnet');
@@ -46,6 +47,11 @@ function process(network = 'mainnet') {
 }
 
 async function checkChainMaintainers(height, network = 'mainnet') {
+    if (!settings.get('checkChainMaintainers-' + network)) {
+        console.log(`[${network}] checkChainMaintainers is disabled`);
+        return;
+    }
+
     const chainMaintainers = await getChainMaintainers(height, network);
     if (!chainMaintainers) {
         return;

@@ -5,6 +5,7 @@ import {getPolls} from "../lib/axelarscan.js";
 import {getChannelIdFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
 import {getAddressesByNetwork, getExistsPoll, savePoll} from "../services/database.js";
+import settings from "../config/settings.js";
 
 export default function checkPollsJob() {
     let isRunning = false;
@@ -34,6 +35,11 @@ export default function checkPollsJob() {
 }
 
 async function processVotes(network = 'mainnet') {
+    if (!settings.get('checkPolls-' + network)) {
+        console.log(`[${network}] checkPolls is disabled`);
+        return;
+    }
+
     const polls = await getPolls(network);
     if (!polls) {
         console.log(`[${network}] polls not found.`);

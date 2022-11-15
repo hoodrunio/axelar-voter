@@ -7,6 +7,7 @@ import {deleteAddress, getAddress, getAddressVotes, getVotersStats, saveAddress}
 import {getPoll} from "../lib/axelarscan.js";
 import {getMonikerByProxyAddress} from "./validators.js";
 import {addSpaces} from "../helpers/string.js";
+import settings from "../config/settings.js";
 
 
 export const discord = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent,]});
@@ -44,11 +45,18 @@ export async function setupDiscord(discordBotToken) {
                     'To register your address, use the command: `$add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
                     'To unregister your address, use the command: `$delete <operator address>`\n' +
                     'To get the details of a poll, use the command: `$poll <poll id>`\n' +
-                    'To get the stats of your address, use the command: `$stats <operator address>`\n';
+                    'To get the stats of your address, use the command: `$stats <operator address>`\n' +
+                    'To get the stats of all addresses, use the command: `$stats all`\n' +
+                    'To get enabled/disabled check chain maintainers, use the command: `$settings checkChainMaintainers`\n' +
+                    'To get enabled/disabled check polls, use the command: `$settings checkChainMaintainers`\n' +
+                    'To set enabled/disabled check chain maintainers, use the command: `$settings checkChainMaintainers enable/disable`\n' +
+                    'To set enabled/disabled check polls, use the command: `$settings checkChainMaintainers enable/disable`\n';
 
                 await message.reply(messageStr);
             } else if (message.content.startsWith('$ping')) {
                 await message.reply('pong 🏓');
+            } else if (message.content.startsWith('$settings')) {
+                await processSettingsMessage(message, channelNetwork);
             } else if (message.content.startsWith('$add')) {
                 const operatorAddress = message.content.split(' ')[1];
                 let voterAddress = '';
@@ -132,10 +140,52 @@ export async function setupDiscord(discordBotToken) {
                 await sendVoterStatsMessage(message, voterAddress, channelNetwork);
             }
         }
-    )
-    ;
+    );
 
     await discord.login(discordBotToken);
+}
+
+async function processSettingsMessage(message, channelNetwork) {
+    const commands = message.content.split(' ');
+    if (commands.length !== 3 && commands.length !== 2) {
+        await message.reply('Invalid command');
+        return;
+    }
+
+    if (commands.length === 2) {
+        switch (commands[1]) {
+            case 'checkChainMaintainers':
+                await message.reply(`check chain maintainers: ${settings.get(`checkChainMaintainers-${channelNetwork}`) ? 'enabled' : 'disabled'}`);
+                break;
+            case 'checkPolls':
+                await message.reply(`check polls: ${settings.get(`checkPolls-${channelNetwork}`) ? 'enabled' : 'disabled'}`);
+                break;
+            default:
+                await message.reply('Invalid command');
+        }
+    } else if (commands.length === 3)
+        switch (commands[1]) {
+            case 'checkChainMaintainers':
+                if (commands[2] === 'enable') {
+                    await settings.set('checkChainMaintainers-' + channelNetwork, true);
+                    await message.reply('Checking chain maintainers is enabled');
+                } else if (commands[2] === 'disable') {
+                    await settings.set('checkChainMaintainers-' + channelNetwork, false);
+                    await message.reply('Checking chain maintainers is disabled');
+                }
+                break;
+            case 'checkPolls':
+                if (commands[2] === 'enable') {
+                    await settings.set('checkPolls-' + channelNetwork, true);
+                    await message.reply('Checking polls is enabled');
+                } else if (commands[2] === 'disable') {
+                    await settings.set('checkPolls-' + channelNetwork, false);
+                    await message.reply('Checking polls is disabled');
+                }
+                break;
+            default:
+                await message.reply('Invalid command');
+        }
 }
 
 async function sendPollDetailsMessage(message, pollId, network) {
@@ -220,4 +270,3 @@ async function sendVoterStatsMessage(message, voterAddress, network) {
         await sendMessage(message.channelId, messageStr);
     }
 }
-
