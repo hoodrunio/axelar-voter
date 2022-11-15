@@ -73,7 +73,8 @@ async function processVotes(network = 'mainnet') {
             if (!vote || vote.vote) {
                 continue;
             }
-            await sendMessage(channelId, createVoteResultMessage(address.userIds.split(','), vote, network));
+            console.log(`[${network}] poll ${poll.id} sending no vote message to ${address.voterAddress}...`);
+            await sendMessage(channelId, createVoteResultMessage(address.userIds.split(','), poll, vote, network));
         }
     }
 }
@@ -94,22 +95,24 @@ async function sendYesVotersMessage(poll, addresses, channelId, network = 'mainn
         .filter(address => poll.votes.find(vote => vote.voter === address.voterAddress && vote.vote))
         .flatMap(address => address.userIds.split(','));
 
-    const messageText = `Poll ${poll.id} had failed and you voted yes. <@${userIds.join('>, <@')}>`;
-    await sendMessage(channelId, messageText);
+    if(userIds.length > 0) {
+        const messageText = `Poll ${poll.id} had failed and you voted yes. <@${userIds.join('>, <@')}>`;
+        await sendMessage(channelId, messageText);
+    }
 }
 
-function createVoteResultMessage(userIds, vote, network = 'mainnet') {
-    const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(vote.chain)}.`;
+function createVoteResultMessage(userIds, poll, vote, network = 'mainnet') {
+    const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(poll.chain)}.`;
 
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
-        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-votes?pollId=${vote.pollId}`)
+        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-votes?pollId=${poll.id}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
         .addFields(
-            {name: 'Poll ID', value: vote.pollId.toString(), inline: true},
-            {name: 'Height', value: vote.height.toString(), inline: true},
-            {name: 'Tx Hash', value: vote.txHash.toString()},
+            {name: 'Poll ID', value: poll.id.toString(), inline: true},
+            {name: 'Height', value: poll.height.toString(), inline: true},
+            {name: 'Tx Hash', value: poll.txHash.toString()},
             {name: 'Voter Address', value: vote.voter.toString()},
         );
 
