@@ -1,10 +1,10 @@
 import {CronJob} from "cron";
 import _ from "lodash";
 import {EmbedBuilder} from "discord.js";
-import {getPolls} from "../lib/axelarscan.js";
+import axelarscan from "../lib/axelarscan.js";
 import {getChannelIdFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
-import {getAddressesByNetwork, getExistsPoll, savePoll} from "../services/database.js";
+import db from "../services/database.js";
 import settings from "../config/settings.js";
 
 export default function checkPollsJob() {
@@ -40,7 +40,7 @@ async function processVotes(network = 'mainnet') {
         return;
     }
 
-    const polls = await getPolls(network);
+    const polls = await axelarscan.getPolls(network);
     if (!polls) {
         console.log(`[${network}] polls not found.`);
         return;
@@ -49,16 +49,16 @@ async function processVotes(network = 'mainnet') {
     const channelId = getChannelIdFromNetwork(network);
 
     for (const poll of polls) {
-        const existsPoll = await getExistsPoll(poll.id, network);
+        const existsPoll = await db.getExistsPoll(poll.id, network);
         if (existsPoll) {
             //console.log(`[${network}] poll ${poll.id} already exists.`);
             continue;
         }
 
         console.log(`[${network}] poll ${poll.id} not exists. Saving...`);
-        await savePoll(poll, network);
+        await db.savePoll(poll, network);
 
-        const addresses = await getAddressesByNetwork(network);
+        const addresses = await db.getAddressesByNetwork(network);
 
         if (poll.failed) {
             console.log(`[${network}] poll ${poll.id} failed. Sending message...`);

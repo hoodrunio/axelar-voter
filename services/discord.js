@@ -3,8 +3,8 @@ import _ from "lodash";
 import {MainnetChannelId, TestnetChannelId} from "../config/env.js";
 import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
-import {deleteAddress, getAddress, getAddressVotes, getVotersStats, saveAddress} from "./database.js";
-import {getPoll} from "../lib/axelarscan.js";
+import db from "./database.js";
+import axelarscan from "../lib/axelarscan.js";
 import {getMonikerByProxyAddress} from "./validators.js";
 import {addSpaces} from "../helpers/string.js";
 import settings from "../config/settings.js";
@@ -72,7 +72,7 @@ export async function setupDiscord(discordBotToken) {
                     userIds.push(message.author.id);
                 }
 
-                const address = await getAddress({
+                const address = await db.getAddress({
                     voterAddress: voterAddress,
                     operatorAddress: operatorAddress,
                 }, channelNetwork);
@@ -83,7 +83,7 @@ export async function setupDiscord(discordBotToken) {
                     return;
                 }
 
-                await saveAddress({
+                await db.saveAddress({
                     voterAddress: voterAddress,
                     operatorAddress: operatorAddress,
                     userIds: userIds.join(','),
@@ -103,7 +103,7 @@ export async function setupDiscord(discordBotToken) {
                     return;
                 }
 
-                const address = await getAddress({
+                const address = await db.getAddress({
                     voterAddress: voterAddress,
                     operatorAddress: operatorAddress,
                 }, channelNetwork);
@@ -114,7 +114,7 @@ export async function setupDiscord(discordBotToken) {
                     return;
                 }
 
-                await deleteAddress(address.id);
+                await db.deleteAddress(address.id);
 
                 await message.reply('Your unregistration has been successful!');
             } else if (message.content.startsWith('$poll')) {
@@ -189,7 +189,7 @@ async function processSettingsMessage(message, channelNetwork) {
 }
 
 async function sendPollDetailsMessage(message, pollId, network) {
-    const poll = await getPoll(pollId, network);
+    const poll = await axelarscan.getPoll(pollId, network);
     if (!poll) {
         await message.reply('Poll not found');
         return;
@@ -224,7 +224,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
 }
 
 async function sendStatsAllMessage(message, network) {
-    const votersStats = await getVotersStats(network);
+    const votersStats = await db.getVotersStats(network);
 
     for (const chunkElement of _.chunk(votersStats, 15)) {
         const messageStr = '```' +
@@ -237,7 +237,7 @@ async function sendStatsAllMessage(message, network) {
 }
 
 async function sendVoterStatsMessage(message, voterAddress, network) {
-    const addressVotes = await getAddressVotes(voterAddress, network);
+    const addressVotes = await db.getAddressVotes(voterAddress, network);
     if (!addressVotes || addressVotes.length === 0) {
         await message.reply('No votes found!');
         return;

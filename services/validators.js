@@ -1,11 +1,11 @@
-import {getRpcValidators} from "../lib/axelarscan.js";
+import axelarscan from "../lib/axelarscan.js";
 
 const validators = {};
 
 export async function setupValidators() {
     const [mainnetValidators, testnetValidators] = await Promise.all([
-        getRpcValidators('mainnet'),
-        getRpcValidators('testnet')
+        axelarscan.getRpcValidators('mainnet'),
+        axelarscan.getRpcValidators('testnet')
     ]);
 
 

@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import {getChainMaintainers} from "../lib/rpc.js";
 import {getChannelIdFromNetwork, getWebsocketFromNetwork} from "../config/env.js";
-import {getAddress} from "../services/database.js";
+import db from "../services/database.js";
 import {sendMessage} from "../services/discord.js";
 import {EmbedBuilder} from "discord.js";
 import {getMonikerByOperatorAddress} from "../services/validators.js";
@@ -58,7 +58,7 @@ async function checkChainMaintainers(height, network = 'mainnet') {
     }
 
     for (const chainMaintainer of chainMaintainers) {
-        const address = await getAddress({operatorAddress: chainMaintainer.address}, network);
+        const address = await db.getAddress({operatorAddress: chainMaintainer.address}, network);
 
         let messageText = `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"} as **${chainMaintainer.chain}** maintainer!`;
         if (address) {
