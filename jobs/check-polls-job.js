@@ -50,6 +50,11 @@ async function processVotes(network = 'mainnet') {
     const channelId = getChannelIdFromNetwork(network);
 
     for (const poll of polls) {
+        if (poll.createdAt.getTime() > Date.now() - 1000 * 60 * 2) {
+            console.log(`[${network}] poll ${poll.id} is too new. Skipping.`);
+            continue;
+        }
+
         const existsPoll = await db.getExistsPoll(poll.id, network);
         if (existsPoll) {
             //console.log(`[${network}] poll ${poll.id} already exists.`);
