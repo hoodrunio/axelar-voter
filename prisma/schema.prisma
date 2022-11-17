@@ -17,7 +17,7 @@ model Poll {
   height            Int
   network           String
   chain             String
-  txHash            String
+  txHash            String?
   success           Boolean
   failed            Boolean
   votes             Vote[]

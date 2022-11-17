@@ -6,6 +6,7 @@ import {getChannelIdFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
 import db from "../services/database.js";
 import settings from "../config/settings.js";
+import {getMonikerByProxyAddress} from "../services/validators";
 
 export default function checkPollsJob() {
     let isRunning = false;
@@ -68,13 +69,42 @@ async function processVotes(network = 'mainnet') {
         }
 
         console.log(`[${network}] poll ${poll.id} sending no votes message...`);
-        for (const address of addresses) {
-            const vote = poll.votes.find(vote => vote.voter === address.voterAddress);
-            if (!vote || vote.vote) {
+
+        const noVotesUserIds = [];
+        const noVotesMonikers = [];
+
+        const unSubmittedVotesUserIds = [];
+        const unSubmittedMonikers = [];
+
+        for (const vote of poll.votes) {
+            const address = addresses.find(address => address.voterAddress === vote.voter);
+
+            if (vote.unSubmitted) {
+                if (address) {
+                    unSubmittedVotesUserIds.push(...address.userIds.split(','));
+                }
+                unSubmittedMonikers.push(await getMonikerByProxyAddress(vote.voter, network));
                 continue;
             }
-            console.log(`[${network}] poll ${poll.id} sending no vote message to ${address.voterAddress}...`);
-            await sendMessage(channelId, createVoteResultMessage(address.userIds.split(','), poll, vote, network));
+
+            if (!vote.vote) {
+                noVotesMonikers.push(getMonikerByProxyAddress(vote.voter, network));
+                if (address) {
+                    noVotesUserIds.push(...address.userIds.split(','));
+                }
+            }
+        }
+
+        if (noVotesMonikers.length > 0) {
+            console.log(`[${network}] poll ${poll.id} sending no vote messages...`);
+            const message = createVoteResultMessage(noVotesUserIds, noVotesMonikers, poll, network);
+            await sendMessage(channelId, message);
+        }
+
+        if (unSubmittedMonikers.length > 0) {
+            console.log(`[${network}] poll ${poll.id} sending UnSubmitted vote messages...`);
+            const message = createUnSubmittedVoteMessage(unSubmittedVotesUserIds, unSubmittedMonikers, poll, network);
+            await sendMessage(channelId, message);
         }
     }
 }
@@ -95,14 +125,14 @@ async function sendYesVotersMessage(poll, addresses, channelId, network = 'mainn
         .filter(address => poll.votes.find(vote => vote.voter === address.voterAddress && vote.vote))
         .flatMap(address => address.userIds.split(','));
 
-    if(userIds.length > 0) {
+    if (userIds.length > 0) {
         const messageText = `Poll ${poll.id} had failed and you voted yes. <@${userIds.join('>, <@')}>`;
         await sendMessage(channelId, messageText);
     }
 }
 
-function createVoteResultMessage(userIds, poll, vote, network = 'mainnet') {
-    const message = `Hey <@${userIds.join('>, <@')}>, voted **${vote.vote ? 'YES' : 'NO'}** for ${_.startCase(poll.chain)}.`;
+function createVoteResultMessage(userIds, monikers, poll, network = 'mainnet') {
+    const message = `${monikers.join(', ')} voted **YES** for **${_.startCase(poll.chain)}**. <@${userIds.join('>, <@')}>`;
 
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
@@ -113,7 +143,26 @@ function createVoteResultMessage(userIds, poll, vote, network = 'mainnet') {
             {name: 'Poll ID', value: poll.id.toString(), inline: true},
             {name: 'Height', value: poll.height.toString(), inline: true},
             {name: 'Tx Hash', value: poll.txHash.toString()},
-            {name: 'Voter Address', value: vote.voter.toString()},
+        );
+
+    return {
+        content: message,
+        embeds: [embed]
+    };
+}
+
+function createUnSubmittedVoteMessage(userIds, monikers, poll, network = 'mainnet') {
+    const message = `${monikers.join(', ')} **UNSUBMITTED** for **${_.startCase(poll.chain)}**. <@${userIds.join('>, <@')}>`;
+
+    const embed = new EmbedBuilder()
+        .setTitle('Axelarscan Link')
+        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-votes?pollId=${poll.id}`)
+        .setColor(0xFF0000)
+        .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
+        .addFields(
+            {name: 'Poll ID', value: poll.id.toString(), inline: true},
+            {name: 'Height', value: poll.height.toString(), inline: true},
+            {name: 'Tx Hash', value: poll.txHash.toString()},
         );
 
     return {

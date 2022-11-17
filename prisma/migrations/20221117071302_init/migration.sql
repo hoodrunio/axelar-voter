@@ -6,7 +6,7 @@ CREATE TABLE "Poll" (
     "height" INTEGER NOT NULL,
     "network" TEXT NOT NULL,
     "chain" TEXT NOT NULL,
-    "txHash" TEXT NOT NULL,
+    "txHash" TEXT,
     "success" BOOLEAN NOT NULL,
     "failed" BOOLEAN NOT NULL
 );
