@@ -101,7 +101,7 @@ async function processVotes(network = 'mainnet') {
 
         if (noVotesMonikers.length > 0) {
             console.log(`[${network}] poll ${poll.id} sending no vote messages...`);
-            const message = createVoteResultMessage(noVotesUserIds, noVotesMonikers, poll, network);
+            const message = createNoVoteMessage(noVotesUserIds, noVotesMonikers, poll, network);
             await sendMessage(channelId, message);
         }
 
@@ -124,7 +124,7 @@ async function sendPollFailedMessage(pollId, network = 'mainnet') {
 }
 
 async function sendYesVotersMessage(poll, addresses, channelId, network = 'mainnet') {
-    console.log(`[${network}] poll ${poll.id} failed. Sending message all yes votes...`);
+    console.log(`[${network}] poll ${poll.id} failed. Sending message all **YES** votes...`);
     const userIds = addresses
         .filter(address => poll.votes.find(vote => vote.voter === address.voterAddress && vote.vote))
         .flatMap(address => address.userIds.split(','));
@@ -135,8 +135,8 @@ async function sendYesVotersMessage(poll, addresses, channelId, network = 'mainn
     }
 }
 
-function createVoteResultMessage(userIds, monikers, poll, network = 'mainnet') {
-    let message = `${monikers.join(', ')} voted **YES** for **${_.startCase(poll.chain)}**.`;
+function createNoVoteMessage(userIds, monikers, poll, network = 'mainnet') {
+    let message = `Poll ${poll.id} ${monikers.join(', ')} voted **NO** for **${_.startCase(poll.chain)}**.`;
     if (userIds.length > 0) {
         message += ` <@${userIds.join('>, <@')}>`;
     }
@@ -159,7 +159,7 @@ function createVoteResultMessage(userIds, monikers, poll, network = 'mainnet') {
 }
 
 function createUnSubmittedVoteMessage(userIds, monikers, poll, network = 'mainnet') {
-    let message = `${monikers.join(', ')} **UNSUBMITTED** for **${_.startCase(poll.chain)}**.`;
+    let message = `Poll ${poll.id} ${monikers.join(', ')} **UNSUBMITTED** for **${_.startCase(poll.chain)}**.`;
     if (userIds.length > 0) {
         message += ` <@${userIds.join('>, <@')}>`;
     }
