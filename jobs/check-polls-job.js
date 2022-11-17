@@ -6,7 +6,7 @@ import {getChannelIdFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
 import db from "../services/database.js";
 import settings from "../config/settings.js";
-import {getMonikerByProxyAddress} from "../services/validators";
+import {getMonikerByProxyAddress, getValidators} from "../services/validators.js";
 
 export default function checkPollsJob() {
     let isRunning = false;
@@ -54,6 +54,29 @@ async function processVotes(network = 'mainnet') {
         if (existsPoll) {
             //console.log(`[${network}] poll ${poll.id} already exists.`);
             continue;
+        }
+
+        // set unSubmitted votes
+        const validators = await getValidators(network);
+        if (Array.isArray(poll.participants) && poll.participants.length > 0) {
+            for (const participant of poll.participants) {
+                const validator = validators.find(validator => validator.operator_address === participant);
+                if (!validator && !validator.proxy_address) {
+                    continue;
+                }
+
+                const vote = poll.votes.find(vote => vote.voter === validator.proxy_address);
+                if (!vote) {
+                    poll.votes.push({
+                        voter: validator.proxy_address,
+                        vote: false,
+                        confirmed: false,
+                        late: false,
+                        createdAt: null,
+                        unSubmitted: true,
+                    })
+                }
+            }
         }
 
         console.log(`[${network}] poll ${poll.id} not exists. Saving...`);
@@ -132,11 +155,14 @@ async function sendYesVotersMessage(poll, addresses, channelId, network = 'mainn
 }
 
 function createVoteResultMessage(userIds, monikers, poll, network = 'mainnet') {
-    const message = `${monikers.join(', ')} voted **YES** for **${_.startCase(poll.chain)}**. <@${userIds.join('>, <@')}>`;
+    let message = `${monikers.join(', ')} voted **YES** for **${_.startCase(poll.chain)}**.`;
+    if (userIds.length > 0) {
+        message += ` <@${userIds.join('>, <@')}>`;
+    }
 
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
-        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-votes?pollId=${poll.id}`)
+        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${poll.id}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
         .addFields(
@@ -152,11 +178,14 @@ function createVoteResultMessage(userIds, monikers, poll, network = 'mainnet') {
 }
 
 function createUnSubmittedVoteMessage(userIds, monikers, poll, network = 'mainnet') {
-    const message = `${monikers.join(', ')} **UNSUBMITTED** for **${_.startCase(poll.chain)}**. <@${userIds.join('>, <@')}>`;
+    let message = `${monikers.join(', ')} **UNSUBMITTED** for **${_.startCase(poll.chain)}**.`;
+    if (userIds.length > 0) {
+        message += ` <@${userIds.join('>, <@')}>`;
+    }
 
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
-        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-votes?pollId=${poll.id}`)
+        .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${poll.id}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
         .addFields(

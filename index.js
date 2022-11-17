@@ -7,6 +7,10 @@ if (!DiscordToken) {
     process.exit(1);
 }
 
-await setupDiscord(DiscordToken);
+console.log('Starting...');
+
+console.log('Setup validators...');
 await setupValidators();
 
+console.log('Setup discord...');
+await setupDiscord(DiscordToken);
