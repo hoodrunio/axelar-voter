@@ -19,10 +19,14 @@ function process(network = 'mainnet') {
         return;
     }
 
-    const ws = new WebSocket(websocketUrl);
+    connectWs(websocketUrl, network);
+}
+
+function connectWs(url, network) {
+    let ws = new WebSocket(url);
 
     ws.on('open', () => {
-        console.log(`Websocket connection opened for ${network}`);
+        console.log(`[${network}] Websocket connected`);
         ws.send(JSON.stringify({
             "jsonrpc": "2.0",
             "method": "subscribe",
@@ -43,6 +47,16 @@ function process(network = 'mainnet') {
         } catch (error) {
             console.log(error);
         }
+    });
+
+    ws.on('error', (error) => {
+        console.log(`[${network}] Websocket error: ${error}`);
+    });
+
+    ws.on('close', () => {
+        console.log(`[${network}] Websocket closed try reconnecting...`);
+        ws = null;
+        setTimeout(() => connectWs(url, network), 1000);
     });
 }
 
