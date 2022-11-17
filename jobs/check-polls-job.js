@@ -1,7 +1,7 @@
 import {CronJob} from "cron";
 import _ from "lodash";
 import {EmbedBuilder} from "discord.js";
-import axelarscan from "../lib/axelarscan.js";
+import axelarscan, {setUnSubmittedVotes} from "../lib/axelarscan.js";
 import {getChannelIdFromNetwork, PollFailedNotifyUsers} from "../config/env.js";
 import {sendMessage} from "../services/discord.js";
 import db from "../services/database.js";
@@ -58,26 +58,7 @@ async function processVotes(network = 'mainnet') {
 
         // set unSubmitted votes
         const validators = await getValidators(network);
-        if (Array.isArray(poll.participants) && poll.participants.length > 0) {
-            for (const participant of poll.participants) {
-                const validator = validators.find(validator => validator.operator_address === participant);
-                if (!validator && !validator.proxy_address) {
-                    continue;
-                }
-
-                const vote = poll.votes.find(vote => vote.voter === validator.proxy_address);
-                if (!vote) {
-                    poll.votes.push({
-                        voter: validator.proxy_address,
-                        vote: false,
-                        confirmed: false,
-                        late: false,
-                        createdAt: null,
-                        unSubmitted: true,
-                    })
-                }
-            }
-        }
+        setUnSubmittedVotes(poll, validators);
 
         console.log(`[${network}] poll ${poll.id} not exists. Saving...`);
         await db.savePoll(poll, network);

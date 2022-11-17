@@ -2,7 +2,7 @@
 CREATE TABLE "Poll" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "pollId" TEXT NOT NULL,
+    "pollId" INTEGER NOT NULL,
     "height" INTEGER NOT NULL,
     "network" TEXT NOT NULL,
     "chain" TEXT NOT NULL,
@@ -18,6 +18,7 @@ CREATE TABLE "Vote" (
     "pollId" INTEGER NOT NULL,
     "voter" TEXT NOT NULL,
     "vote" BOOLEAN NOT NULL,
+    "unSubmitted" BOOLEAN NOT NULL,
     CONSTRAINT "Vote_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES "Poll" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 

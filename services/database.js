@@ -57,6 +57,7 @@ export default {
                     create: poll.votes.map(vote => ({
                         voter: vote.voter,
                         vote: vote.vote,
+                        unSubmitted: vote.unSubmitted,
                     }))
                 },
             }
@@ -93,7 +94,7 @@ export default {
         });
     },
     async getVotersStats(network) {
-        const [yesVotes, noVotes, failedYesVotes, failednoVotes] = await Promise.all([
+        const [yesVotes, noVotes, unSubmittedVotes, failedYesVotes, failednoVotes, failedUnSubmittedVotes] = await Promise.all([
             // yes votes
             prisma.vote.groupBy({
                 by: ['voter'],
@@ -109,11 +110,13 @@ export default {
                     vote: true,
                 },
             }),
+
             // no votes
             prisma.vote.groupBy({
                 by: ['voter'],
                 where: {
                     vote: false,
+                    unSubmitted: false,
                     poll: {
                         network: network,
                         failed: false,
@@ -124,6 +127,23 @@ export default {
                     vote: true,
                 },
             }),
+
+            // unSubmitted votes
+            prisma.vote.groupBy({
+                by: ['voter'],
+                where: {
+                    unSubmitted: true,
+                    poll: {
+                        network: network,
+                        failed: false,
+                        success: true,
+                    },
+                },
+                _count: {
+                    unSubmitted: true,
+                },
+            }),
+
             // failed yes votes
             prisma.vote.groupBy({
                 by: ['voter'],
@@ -139,11 +159,13 @@ export default {
                     vote: true,
                 },
             }),
+
             // failed no votes
             prisma.vote.groupBy({
                 by: ['voter'],
                 where: {
                     vote: false,
+                    unSubmitted: false,
                     poll: {
                         network: network,
                         failed: true,
@@ -153,28 +175,49 @@ export default {
                 _count: {
                     vote: true,
                 },
+            }),
+
+            // failed unSubmitted votes
+            prisma.vote.groupBy({
+                by: ['voter'],
+                where: {
+                    unSubmitted: true,
+                    poll: {
+                        network: network,
+                        failed: true,
+                        success: false,
+                    },
+                },
+                _count: {
+                    unSubmitted: true,
+                },
             })
         ]);
 
         const voters = {};
-        const processVotes = (votes, field) => {
+        const processVotes = (votes, field, totalField = 'vote') => {
             for (const vote of votes) {
                 if (!voters[vote.voter]) {
                     voters[vote.voter] = {
                         yes: 0,
                         no: 0,
+                        unSubmitted: 0,
                         failedYes: 0,
                         failedNo: 0,
+                        failedUnSubmitted: 0,
                     };
                 }
-                voters[vote.voter][field] = vote._count.vote;
+                voters[vote.voter][field] = vote._count[totalField];
             }
         };
 
         processVotes(yesVotes, 'yes');
         processVotes(noVotes, 'no');
+        processVotes(unSubmittedVotes, 'unSubmitted', 'unSubmitted');
+
         processVotes(failedYesVotes, 'failedYes');
         processVotes(failednoVotes, 'failedNo');
+        processVotes(failedUnSubmittedVotes, 'failedUnSubmitted', 'unSubmitted');
 
         return Object.keys(voters).map(key => ({voter: key, ...voters[key]}));
     },

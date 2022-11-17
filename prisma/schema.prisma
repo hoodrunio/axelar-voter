@@ -11,16 +11,16 @@ datasource db {
 }
 
 model Poll {
-  id                Int      @id @default(autoincrement())
-  createdAt         DateTime @default(now())
-  pollId            String
-  height            Int
-  network           String
-  chain             String
-  txHash            String?
-  success           Boolean
-  failed            Boolean
-  votes             Vote[]
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  pollId    Int
+  height    Int
+  network   String
+  chain     String
+  txHash    String?
+  success   Boolean
+  failed    Boolean
+  votes     Vote[]
 
   @@unique([pollId, network])
 }
@@ -31,8 +31,9 @@ model Vote {
   poll      Poll     @relation(fields: [pollId], references: [id])
   pollId    Int
 
-  voter String
-  vote  Boolean
+  voter       String
+  vote        Boolean
+  unSubmitted Boolean
 }
 
 model Address {

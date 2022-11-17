@@ -4,8 +4,8 @@ import {MainnetChannelId, TestnetChannelId} from "../config/env.js";
 import {getVoterAddress} from "../helpers/voter.js";
 import {setupJobs} from "../jobs/index.js";
 import db from "./database.js";
-import axelarscan from "../lib/axelarscan.js";
-import {getMonikerByProxyAddress} from "./validators.js";
+import axelarscan, {setUnSubmittedVotes} from "../lib/axelarscan.js";
+import {getMonikerByProxyAddress, getValidators} from "./validators.js";
 import {addSpaces} from "../helpers/string.js";
 import settings from "../config/settings.js";
 
@@ -38,26 +38,26 @@ export async function setupDiscord(discordBotToken) {
             const channelNetwork = channelId === MainnetChannelId ? 'mainnet' : 'testnet';
 
 
-            if (message.content.startsWith('$help')) {
+            if (message.content.startsWith('!help')) {
                 const messageStr =
                     'Hello, I am a bot that will notify you of any changes in your voting status.\n' +
-                    'To check bot is working, type `$ping`\n' +
-                    'To register your address, use the command: `$add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
-                    'To unregister your address, use the command: `$delete <operator address>`\n' +
-                    'To get the details of a poll, use the command: `$poll <poll id>`\n' +
-                    'To get the stats of your address, use the command: `$stats <operator address>`\n' +
-                    'To get the stats of all addresses, use the command: `$stats all`\n' +
-                    'To get enabled/disabled check chain maintainers, use the command: `$settings checkChainMaintainers`\n' +
-                    'To get enabled/disabled check polls, use the command: `$settings checkChainMaintainers`\n' +
-                    'To set enabled/disabled check chain maintainers, use the command: `$settings checkChainMaintainers enable/disable`\n' +
-                    'To set enabled/disabled check polls, use the command: `$settings checkChainMaintainers enable/disable`\n';
+                    'To check bot is working, type `!ping`\n' +
+                    'To register your address, use the command: `!add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
+                    'To unregister your address, use the command: `!delete <operator address>`\n' +
+                    'To get the details of a poll, use the command: `!poll <poll id>`\n' +
+                    'To get the stats of your address, use the command: `!stats <operator address>`\n' +
+                    'To get the stats of all addresses, use the command: `!stats all`\n' +
+                    'To get enabled/disabled check chain maintainers, use the command: `!settings checkChainMaintainers`\n' +
+                    'To get enabled/disabled check polls, use the command: `!settings checkPolls`\n' +
+                    'To set enabled/disabled check chain maintainers, use the command: `!settings checkChainMaintainers enable/disable`\n' +
+                    'To set enabled/disabled check polls, use the command: `!settings checkPolls enable/disable`\n';
 
                 await message.reply(messageStr);
-            } else if (message.content.startsWith('$ping')) {
+            } else if (message.content.startsWith('!ping')) {
                 await message.reply('pong 🏓');
-            } else if (message.content.startsWith('$settings')) {
+            } else if (message.content.startsWith('!settings')) {
                 await processSettingsMessage(message, channelNetwork);
-            } else if (message.content.startsWith('$add')) {
+            } else if (message.content.startsWith('!add')) {
                 const operatorAddress = message.content.split(' ')[1];
                 let voterAddress = '';
                 try {
@@ -93,7 +93,7 @@ export async function setupDiscord(discordBotToken) {
                     `Registration done for ${getMonikerByProxyAddress(voterAddress, channelNetwork)}!\n` +
                     `Voter Address: \`${voterAddress}\``;
                 await message.reply(messageStr);
-            } else if (message.content.startsWith('$delete')) {
+            } else if (message.content.startsWith('!delete')) {
                 const operatorAddress = message.content.split(' ')[1];
                 let voterAddress = '';
                 try {
@@ -117,12 +117,12 @@ export async function setupDiscord(discordBotToken) {
                 await db.deleteAddress(address.id);
 
                 await message.reply('Your unregistration has been successful!');
-            } else if (message.content.startsWith('$poll')) {
+            } else if (message.content.startsWith('!poll')) {
                 const pollId = message.content.split(' ')[1];
                 await sendPollDetailsMessage(message, pollId, channelNetwork);
-            } else if (message.content === '$stats all') {
+            } else if (message.content === '!stats all') {
                 await sendStatsAllMessage(message, channelNetwork);
-            } else if (message.content.startsWith('$stats')) {
+            } else if (message.content.startsWith('!stats')) {
                 const operatorAddress = message.content.split(' ')[1];
 
                 let voterAddress = '';
@@ -195,6 +195,10 @@ async function sendPollDetailsMessage(message, pollId, network) {
         return;
     }
 
+    // set unSubmitted votes
+    const validators = await getValidators(network);
+    setUnSubmittedVotes(poll, validators);
+
     const embed = new EmbedBuilder()
         .setTitle('Axelarscan Link')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${pollId}`)
@@ -205,7 +209,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
             {name: 'Height', value: poll.height.toString(), inline: true},
             {name: 'Chain', value: _.startCase(poll.chain)},
             {name: 'Tx Hash', value: poll.txHash.toString()},
-            {name: 'Status', value: poll.success ? 'Success' : poll.failed ? 'Failed' : 'Pending'},
+            {name: 'Status', value: getPollStatus(poll)},
             {name: 'Total Votes', value: poll.totalVotes.toString()},
             {name: 'Yes Votes', value: poll.yesVotes.toString()},
             {name: 'No Votes', value: poll.noVotes.toString()},
@@ -215,9 +219,9 @@ async function sendPollDetailsMessage(message, pollId, network) {
 
     for (const chunkElement of _.chunk(poll.votes, 15)) {
         const messageStr = '```' +
-            '               Voter               |   Vote   \n' +
-            '----------------------------------------------\n' +
-            chunkElement.map(m => `${addSpaces(getMonikerByProxyAddress(m.voter, network), 35)}|${addSpaces(m.vote ? '✅' : '❌', 10)}`).join('\n') +
+            '           Voter           |   Vote   \n' +
+            '--------------------------------------\n' +
+            chunkElement.map(m => `${addSpaces(getMonikerByProxyAddress(m.voter, network), 27)}|${addSpaces(getVoteStatus(m), 10)}`).join('\n') +
             '```';
         await sendMessage(message.channelId, messageStr);
     }
@@ -228,9 +232,9 @@ async function sendStatsAllMessage(message, network) {
 
     for (const chunkElement of _.chunk(votersStats, 15)) {
         const messageStr = '```' +
-            '               Voter               |   Yes   |   No   |  Yes (Failed)  |  No (Failed)  \n' +
-            '-------------------------------------------------------------------------------------\n' +
-            chunkElement.map(m => `${addSpaces(getMonikerByProxyAddress(m.voter, network), 35)}|${addSpaces(m.yes.toString(), 9)}|${addSpaces(m.no.toString(), 8)}|${addSpaces(m.failedYes.toString(), 16)}|${addSpaces(m.failedNo.toString(), 15)}`).join('\n') +
+            '           Voter           | Yes | No | UnSubmit | Yes(Fail) | No(Fail) | UnSubmit(Fail) \n' +
+            '-----------------------------------------------------------------------------------------\n' +
+            chunkElement.map(m => `${addSpaces(getMonikerByProxyAddress(m.voter, network), 27)}|${addSpaces(m.yes.toString(), 5)}|${addSpaces(m.no.toString(), 4)}|${addSpaces(m.unSubmitted.toString(), 10)}|${addSpaces(m.failedYes.toString(), 11)}|${addSpaces(m.failedNo.toString(), 10)}|${addSpaces(m.failedUnSubmitted.toString(), 16)}`).join('\n') +
             '```';
         await sendMessage(message.channelId, messageStr);
     }
@@ -265,8 +269,26 @@ async function sendVoterStatsMessage(message, voterAddress, network) {
         const messageStr = '```' +
             '  Poll ID  |  Poll Status  |  Vote  \n' +
             '------------------------------------\n' +
-            chunkElement.map(m => `${addSpaces(m.poll.pollId.toString(), 11)}|${addSpaces(m.poll.success ? 'Success' : m.failed ? 'Failed' : 'Pending', 15)}|${addSpaces(m.vote ? '✅' : '❌', 8)}`).join('\n') +
+            chunkElement.map(m => `${addSpaces(m.poll.pollId.toString(), 11)}|${addSpaces(getPollStatus(m.poll), 15)}|${addSpaces(getVoteStatus(m), 8)}`).join('\n') +
             '```';
         await sendMessage(message.channelId, messageStr);
     }
+}
+
+function getPollStatus(poll) {
+    if (poll.success)
+        return 'Success';
+    if (poll.failed)
+        return 'Failed';
+    return 'Pending';
+}
+
+function getVoteStatus(vote) {
+    if (vote.vote)
+        return '✅';
+
+    if (vote.unSubmitted)
+        return '⚠️';
+
+    return '❌';
 }
