@@ -82,6 +82,7 @@ async function checkChainMaintainers(height, network = 'mainnet') {
         const embed = new EmbedBuilder()
             .setTitle('Chain Maintainer Alert')
             .setColor(chainMaintainer.action === "register" ? 0x4BB543 : 0xF32013)
+            .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${chainMaintainer.address}`)
             .addFields(
                 {
                     name: `${chainMaintainer.action === "register" ? "Registration" : "Deregistration"}`,
@@ -90,10 +91,6 @@ async function checkChainMaintainers(height, network = 'mainnet') {
                 {
                     name: `Chain`,
                     value: `**${chainMaintainer.chain}**`
-                },
-                {
-                    name: 'Axelar Scan Link',
-                    value: `https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${chainMaintainer.address}`
                 },
             );
 
