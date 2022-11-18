@@ -40,17 +40,13 @@ export async function setupDiscord(discordBotToken) {
 
             if (message.content.startsWith('!help')) {
                 const messageStr =
-                    'Hello, I am a bot that will notify you of any changes in your voting status.\n' +
-                    'To check bot is working, type `!ping`\n' +
-                    'To register your address, use the command: `!add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
-                    'To unregister your address, use the command: `!delete <operator address>`\n' +
-                    'To get the details of a poll, use the command: `!poll <poll id>`\n' +
-                    'To get the stats of your address, use the command: `!stats <operator address>`\n' +
-                    'To get the stats of all addresses, use the command: `!stats all`\n' +
-                    'To get enabled/disabled check chain maintainers, use the command: `!settings checkChainMaintainers`\n' +
-                    'To get enabled/disabled check polls, use the command: `!settings checkPolls`\n' +
-                    'To set enabled/disabled check chain maintainers, use the command: `!settings checkChainMaintainers enable/disable`\n' +
-                    'To set enabled/disabled check polls, use the command: `!settings checkPolls enable/disable`\n';
+                    'Hello, Im a bot that will notify you of any changes in your voting status.\n' +
+                    'Type `$ping` to check if the bot is running\n' +
+                    'To save your address, use this command: `$add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
+                    'To unregister your address, use this command: `!delete <operator address>`\n' +
+                    'To get the details of a poll, use this command: `!poll <poll id>`\n' +
+                    'To get statistics for your address, use this command: `!stats <operator address>`\n' +
+                    'To get statistics of all addresses, use this command: `!stats all`\n';
 
                 await message.reply(messageStr);
             } else if (message.content.startsWith('!ping')) {
