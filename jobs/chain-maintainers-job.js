@@ -80,16 +80,17 @@ async function checkChainMaintainers(height, network = 'mainnet') {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle('Chain Maintainer Register')
+            .setTitle('Chain Maintainer Alert')
             .setColor(chainMaintainer.action === "register" ? 0x4BB543 : 0xF32013)
+            .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${chainMaintainer.address}`)
             .addFields(
                 {
-                    name: `${chainMaintainer.action === "register" ? "Registration" : "Deregistration"} Notification`,
-                    value: `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"} as **${chainMaintainer.chain}** maintainer!`
+                    name: `${chainMaintainer.action === "register" ? "Registration" : "Deregistration"}`,
+                    value: `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}**`
                 },
                 {
-                    name: 'Axelar Scan Link',
-                    value: `https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${chainMaintainer.address}`
+                    name: `Chain`,
+                    value: `**${chainMaintainer.chain}**`
                 },
             );
 
