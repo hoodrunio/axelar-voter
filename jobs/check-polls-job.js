@@ -7,6 +7,7 @@ import {sendMessage} from "../services/discord.js";
 import db from "../services/database.js";
 import settings from "../config/settings.js";
 import {getMonikerByProxyAddress, getValidators} from "../services/validators.js";
+import {getCurrentBlock} from "../lib/rpc.js";
 
 export default function checkPollsJob() {
     let isRunning = false;
@@ -48,10 +49,10 @@ async function processVotes(network = 'mainnet') {
     }
 
     const channelId = getChannelIdFromNetwork(network);
-
+    const currentBlock = await getCurrentBlock(network);
     for (const poll of polls) {
-        if (poll.createdAt.getTime() > Date.now() - 1000 * 60 * 2) {
-            console.log(`[${network}] poll ${poll.id} is too new. Skipping.`);
+        if (poll.height + 10 > currentBlock) {
+            console.log(`[${network}] poll ${poll.id} is not finished yet.`);
             continue;
         }
 
