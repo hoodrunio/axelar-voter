@@ -51,7 +51,7 @@ async function processVotes(network = 'mainnet') {
     const channelId = getChannelIdFromNetwork(network);
     const currentBlock = await getCurrentBlock(network);
     for (const poll of polls) {
-        if (poll.height + 10 > currentBlock) {
+        if (poll.height + 20 > currentBlock) {
             console.log(`[${network}] poll ${poll.id} is not finished yet.`);
             continue;
         }
