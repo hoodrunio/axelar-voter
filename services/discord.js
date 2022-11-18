@@ -112,7 +112,7 @@ export async function setupDiscord(discordBotToken) {
 
                 await db.deleteAddress(address.id);
 
-                await message.reply('Your unregistration has been successful!');
+                await message.reply('Unregistration done!');
             } else if (message.content.startsWith('!poll')) {
                 const pollId = message.content.split(' ')[1];
                 await sendPollDetailsMessage(message, pollId, channelNetwork);
