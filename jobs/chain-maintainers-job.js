@@ -86,12 +86,11 @@ async function checkChainMaintainers(height, network = 'mainnet') {
             .addFields(
                 {
                     name: `${chainMaintainer.action === "register" ? "Registration" : "Deregistration"}`,
-                    value: `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}**`
+                    value: `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}**`, inline: true
                 },
-                { name: '\u200B', value: '\u200B' },
                 {
                     name: `Chain`,
-                    value: `**${chainMaintainer.chain}**`
+                    value: `**${chainMaintainer.chain}**`, inline: true
                 },
             );
 

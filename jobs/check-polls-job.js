@@ -177,7 +177,7 @@ function createUnSubmittedVoteMessage(userIds, monikers, poll, network = 'mainne
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
         .addFields(
             {name: 'Poll ID', value: poll.id.toString(), inline: true},
-            {name: 'Height', value: poll.height.toString(), inline: true},
+            {name: 'Height', value: poll.height.toString(), : true},
             {name: 'Tx Hash', value: poll.txHash.toString()},
         );
 
