@@ -74,7 +74,7 @@ async function checkChainMaintainers(height, network = 'mainnet') {
     for (const chainMaintainer of chainMaintainers) {
         const address = await db.getAddress({operatorAddress: chainMaintainer.address}, network);
 
-        let messageText = `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"} as **${chainMaintainer.chain}** maintainer!`;
+        let messageText = `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}** ${chainMaintainer.action === "register" ? "registered" : "deregistered"}: **${chainMaintainer.chain}**`;
         if (address) {
             messageText += ` <@${address.userIds.split(',').join('>, <@')}>`;
         }
@@ -88,6 +88,7 @@ async function checkChainMaintainers(height, network = 'mainnet') {
                     name: `${chainMaintainer.action === "register" ? "Registration" : "Deregistration"}`,
                     value: `**${getMonikerByOperatorAddress(chainMaintainer.address, network)}**`
                 },
+                { name: '\u200B', value: '\u200B' },
                 {
                     name: `Chain`,
                     value: `**${chainMaintainer.chain}**`
