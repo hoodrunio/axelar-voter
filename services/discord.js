@@ -196,7 +196,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
     setUnSubmittedVotes(poll, validators);
 
     const embed = new EmbedBuilder()
-        .setTitle('Axelarscan Link')
+        .setTitle('Axelarscan')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${pollId}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Poll', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
@@ -244,7 +244,7 @@ async function sendVoterStatsMessage(message, voterAddress, network) {
     }
 
     const embed = new EmbedBuilder()
-        .setTitle('Axelarscan Link')
+        .setTitle('Axelarscan')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${voterAddress}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Validator', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
