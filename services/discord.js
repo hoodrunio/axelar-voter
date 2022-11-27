@@ -41,8 +41,8 @@ export async function setupDiscord(discordBotToken) {
             if (message.content.startsWith('!help')) {
                 const messageStr =
                     'Hello, Im a bot that will notify you of any changes in your voting status.\n' +
-                    'Type `$ping` to check if the bot is running\n' +
-                    'To save your address: `$add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
+                    'Type `!ping` to check if the bot is running\n' +
+                    'To save your address: `!add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
                     'To unregister your address: `!delete <operator address>`\n' +
                     'To get the details of a poll: `!poll <poll id>`\n' +
                     'To get statistics for your address: `!stats <operator address>`\n' +
