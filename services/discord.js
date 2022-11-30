@@ -41,8 +41,8 @@ export async function setupDiscord(discordBotToken) {
             if (message.content.startsWith('!help')) {
                 const messageStr =
                     'Hello, Im a bot that will notify you of any changes in your voting status.\n' +
-                    'Type `$ping` to check if the bot is running\n' +
-                    'To save your address: `$add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
+                    'Type `!ping` to check if the bot is running\n' +
+                    'To save your address: `!add <operator address> @<user1> @<user2>` (@<users> is optional)\n' +
                     'To unregister your address: `!delete <operator address>`\n' +
                     'To get the details of a poll: `!poll <poll id>`\n' +
                     'To get statistics for your address: `!stats <operator address>`\n' +
@@ -196,7 +196,7 @@ async function sendPollDetailsMessage(message, pollId, network) {
     setUnSubmittedVotes(poll, validators);
 
     const embed = new EmbedBuilder()
-        .setTitle('Axelarscan Link')
+        .setTitle('Axelarscan')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${pollId}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Poll', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
@@ -244,7 +244,7 @@ async function sendVoterStatsMessage(message, voterAddress, network) {
     }
 
     const embed = new EmbedBuilder()
-        .setTitle('Axelarscan Link')
+        .setTitle('Axelarscan')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/validator/${voterAddress}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Validator', iconURL: 'https://axelarscan.io/logos/logo_white.png'})

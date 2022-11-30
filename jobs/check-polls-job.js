@@ -149,7 +149,7 @@ function createNoVoteMessage(userIds, monikers, poll, network = 'mainnet') {
     }
 
     const embed = new EmbedBuilder()
-        .setTitle('Axelarscan Link')
+        .setTitle('Axelarscan')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${poll.id}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
@@ -172,7 +172,7 @@ function createUnSubmittedVoteMessage(userIds, monikers, poll, network = 'mainne
     }
 
     const embed = new EmbedBuilder()
-        .setTitle('Axelarscan Link')
+        .setTitle('Axelarscan')
         .setURL(`https://${network === 'testnet' ? 'testnet.' : ''}axelarscan.io/evm-poll/${poll.id}`)
         .setColor(0xFF0000)
         .setAuthor({name: 'Axelar Vote', iconURL: 'https://axelarscan.io/logos/logo_white.png'})
