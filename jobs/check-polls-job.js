@@ -74,7 +74,8 @@ async function processVotes(network = 'mainnet') {
         if (poll.failed) {
             console.log(`[${network}] poll ${poll.id} failed. Sending message...`);
             await sendPollFailedMessage(poll.id, network);
-            await sendYesVotersMessage(poll, addresses, channelId, network);
+            // don't send message to all yes voters
+            // await sendYesVotersMessage(poll, addresses, channelId, network);
             continue;
         }
 
